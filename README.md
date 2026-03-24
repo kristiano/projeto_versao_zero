@@ -2,11 +2,13 @@
 
 Bem-vindo ao repositório do **Sistema de Personalização de Materiais Didáticos**. Este projeto visa adaptar automaticamente o conteúdo de disciplinas educacionais para alinhar-se com o perfil cognitivo de cada estudante, utilizando o modelo de estilo de aprendizagem de **Felder-Silverman** integrado com as capacidades das inteligências artificiais de linguagem profunda (**LLMs Google Gemini**).
 
+Nesta versão mais recente, o sistema foi inteiramente otimizado: arquivos legados foram removidos e o fluxo principal foi consolidado, garantindo alta performance e um código limpo.
+
 ---
 
-## 📂 Visão Geral da Arquitetura
+## 📂 Visão Geral da Arquitetura do Projeto
 
-Aqui estão os componentes centrais do projeto e como são divididos em arquivos Python:
+Abaixo estão todos os componentes centrais do projeto e como suas responsabilidades estão divididas:
 
 - **`main.py`** 📍  
   O arquivo principal (orquestrador) do sistema. O processo se inicia aqui, integrando passo-a-passo todos os outros submódulos e arquivos.
@@ -27,45 +29,45 @@ Aqui estão os componentes centrais do projeto e como são divididos em arquivos
   O núcleo de Inteligência Pedagógica. Recebe (1) o **trecho do assunto listado** e (2) a **persona descrita pelo `profiler.py`**, adaptando o tom, voz, analogias, níveis de abstração e linguagem daquele tópico exatamente para que ele soe como a forma ideal em que esse aluno consegue absorver conteúdo.
 
 - **`gerador_pdf.py`** 🖨️  
-  Motor de estilização final. Recebe o conteúdo que acabou de ser adaptado pelo *rewrite* em Markdown e o traduz novamente para um excelente e polido arquivo `.pdf` através da biblioteca FPDF2, guardando toda formatação estilizada em negrito, listas, layouts na página, etc.
+  Motor de estilização final. Recebe o conteúdo que acabou de ser adaptado pelo *rewrite* em Markdown e o traduz novamente para um excelente e polido arquivo `.pdf` através da biblioteca FPDF2, guardando toda formatação estilizada em negrito, listas, layouts na página e evitando erros de margem ("Not enough horizontal space").
 
 - **`gemini_config.py`** ⚙️  
-  Interface de comunicação com os modelos de fundação do Google Gemini e configuração de credenciais via `.env`, tratamento de limites de requisições, instâncias e prompts do sistema.
+  Interface de comunicação com os modelos de fundação do Google Gemini e configuração de credenciais via `.env`, gerenciando de forma unificada os parâmetros da API para todo o sistema.
 
 ---
 
 ## ⚙️ Como o Sistema Funciona?
 
-O ciclo completo se propaga pelas seguintes etapas quando você roda `main.py`:
+O ciclo completo se propaga pelas seguintes etapas quando você roda `python main.py`:
 
-1. **Entrevistando o Estudante:** A aplicação captura o modelo cognitivo e sensorial do aluno por meio de perguntas.
-2. **Construindo a Persona Educacional:** O sistema computa o perfil do aluno (Ex: *Ativo, Visual, Sensorial e Sequencial*).
-3. **Traduzindo e Estruturando:** A Inteligência do sistema traduz todo o material da disciplina PDF original para Markdown, embutindo cabeçalhos e textos de modo que a I.A consiga ler.
-4. **Extraindo Alvos (Chunks):** Uma I.A vasculha o arquivo da apostila para separar um tema escolhido.
-5. **A Mágica da Adaptação Didática:** O sistema entrega a parte teórica da apostila na "mão" de um excelente Prompt LLM (atuando como professor acadêmico). A I.A reescreve a teoria na medida exata de como a Persona educacional aprende.
-6. **Entrega Pronta:** O MD traduzido volta a virar um arquivo `PDF` bonito, formatado com o nome de perfil impresso e o texto final personalizado perfeitamente sem erros e guardado em disco local.
+1. **Entrevistando o Estudante:** A aplicação captura o modelo cognitivo e sensorial do aluno por meio de perguntas objetivas (Questionário ILS).
+2. **Construindo a Persona Educacional:** O sistema computa o perfil exato dentre os 16 perfis possíveis de Felder-Silverman (Ex: *Ativo, Visual, Sensorial e Sequencial*).
+3. **Extração de Conteúdo:** O sistema lê o material bruto da disciplina (`disciplina.pdf`) e o converte para Markdown.
+4. **Isolamento de Tópicos:** A IA vasculha o texto e separa o assunto ideal ou o trecho que precisa ser estudado.
+5. **A Adaptação Didática (Core):** O text selecionado é enviado em conjunto com o perfil do aluno para a LLM, que reescreve a teoria aplicando métodos condizentes (ex: mais gráficos para visuais, mais passos para sequenciais).
+6. **PDF Final:** O texto personalizado é renderizado de volta em um arquivo de PDF limpo e agradável, pronto para o estudo do aluno.
 
 ---
 
 ## 🔄 Fluxograma de Funcionamento
 
-O fluxograma a seguir demonstra, de forma interligada, como os nossos módulos trocam informações até o PDF adaptado ser entregue:
+O fluxograma a seguir demonstra a dinâmica modular das informações geradas até a entrega do PDF final:
 
 ```mermaid
 graph TD
     A[main.py - Inicialização do Programa] --> B(questionario.py)
-    B -->|Respostas e Dimensões| C(profiler.py)
-    C -->|Texto do Perfil do Aluno gerado por IA| H
+    B -->|Respostas do Questionário ILS| C(profiler.py)
+    C -->|Perfil de Aprendizagem Textual| H
     
     A --> D(leitor_pdf.py)
-    D -->|Conversão de PDF bruto| E[Texto em Formato Markdown]
+    D -->|Extração via pymupdf4llm| E[Texto em Formato Markdown]
     
     E --> F(assuntos_llm.py)
-    F -->|Localiza e extrai tópicos curriculares| G[Assunto a Ser Estudado]
+    F -->|Localiza e isola o tópico| G[Assunto a Ser Estudado]
     
     G --> H(rewrite.py)
-    H -->|Conteúdo reescrito para adaptar-se àquele Perfil| I[Material Personalizado em Markdown]
+    H -->|Prompt Eng. c/ Perfil do Estudante| I[Material Personalizado em Markdown]
     
     I --> J(gerador_pdf.py)
-    J -->|Compila fonte, texto, quebras de página e caixas| K[(PDF Final Personalizado)]
+    J -->|Renderização FPDF2| K[(PDF Final Adaptado e Formatado)]
 ```
