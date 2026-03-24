@@ -1,5 +1,5 @@
 # Histórico de Interação - Chat de Assistência IA
-**Data e Hora da Geração:** 23 de Março de 2026, às 22:39 (Horário Local)
+**Data e Hora da Geração:** 23 de Março de 2026, às 23:39 (Horário Local)
 
 Este documento registra o fluxo de trabalho e as decisões arquiteturais discutidas e aplicadas durante esta sessão de desenvolvimento do **Sistema de Personalização de Materiais Didáticos**.
 
@@ -34,6 +34,20 @@ Este documento registra o fluxo de trabalho e as decisões arquiteturais discuti
 - **Problema:** Na execução, o sistema disparou um *FileNotFoundError* da biblioteca ao ler `/disciplina.pdf`.
 - **Análise:** O scanner de segurança constatou a ocorrência de mudanças locais e identificou a renomeação do arquivo na pasta de execução para `disciplina1.pdf` e `disciplina2.pdf`.
 - **Ação Rápida:** O script principal `main.py` foi temporariamente apontado para a versão referenciada no ambiente, com o link corrigido sendo mantido intacto pelo usuário posteriormente para sua versão PDF validada.
+
+### 8. Análise do arquivo `projeto.py`
+- **Pergunta:** Qual a função do arquivo `projeto.py`?
+- **Ação:** Acessado e analisado o código, identificou-se que era um rascunho em formato CLI (linha de comando) para aplicação do questionário Felder-Silverman e integração inicial com o Gemini. Suas lógicas de IA estavam comentadas, evidenciando seu caráter de protótipo legado substituído pelos scripts modulares.
+
+### 9. Limpeza do Projeto (Remoção de Código Morto)
+- **Ação:** A pedido do usuário, foi feita uma varredura para identificar todos os arquivos `.py` não utilizados (verificando os "imports" de `main.py`). Foram identificados e apagados do disco definitivamente os scripts inativos: `projeto.py` e `seletor_conteudo.py`, resultando em uma base de código enxuta.
+
+### 10. Atualização Integral da Documentação (`README.md`)
+- **Ação:** O arquivo `README.md` foi inteiramente reescrito para refletir a nova estrutura de pastas e as dependências (como os remanescentes `assuntos_llm.py` e `gemini_config.py`). O fluxograma do sistema foi iterado com as lógicas ativas, evidenciando as novidades da otimização vertical/horizontal.
+
+### 11. Validação Arquitetural: Biblioteca PDF
+- **Pergunta:** O uso de `PyMuPDF` seria mais útil para o nosso projeto?
+- **Ação:** Esclarecido ao usuário de que a biblioteca atual em uso (`pymupdf4llm`), implementada no `leitor_pdf.py`, não só engloba o PyMuPDF (*fitz*), como foi idealmente estruturada pela própria fabricante (Artifex) especificamente para entregar conteúdo compatível com RAG em Markdown nativo, extraindo e mantendo formatos ricos e de tabela diretamente voltados para as Inteligências Artificiais. A estrutura consolidou-se como sendo a ideal tecnológica para o momento.
 
 ---
 *Fim do log. Interação encerrada.*
