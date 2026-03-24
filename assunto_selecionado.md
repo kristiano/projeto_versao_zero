@@ -1,84 +1,68 @@
-|**Sumário**|**Sumário**|||||
-|---|---|---|---|---|---|
-|**1**|**Introdução**||||**3**|
-|**2**|**Histórico de JavaScript**||||**4**|
-|**3**|**Conceitos**||||**6**|
-|**4**|**Núcleo da Linguagem JavaScript**||||**9**|
-||4.1 Tipos de dados .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|9|
-||4.1.1 Tipos numéricos . . . . . . . . . . . . . . . . . . . . . . . . . .||||9|
-||4.1.2 Booleano|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|9|
-||4.1.3 Indefnido|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|10|
-||4.1.4 null . . . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|10|
-||4.1.5 Strings . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|11|
-||4.1.6 Arrays . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|11|
-||4.2 Operadores . . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|12|
-||4.2.1 Aritméticos||.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|12|
-||4.2.2 Comparação|||. . . . . . . . . . . . . . . . . . . . . . . . . . . .|12|
-||4.2.3 Bit a bit .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|13|
-||4.2.4 Atribuição|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|13|
-||4.2.5 Lógicos . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|13|
-||4.3 Estruturas de controle<br>. . . . . . . . . . . . . . . . . . . . . . . . . .||||13|
-||4.4 Funções . . . . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|16|
-||4.5 Objetos<br>. . . . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|18|
-||4.5.1 Objeto String|||. . . . . . . . . . . . . . . . . . . . . . . . . . . .|21|
-||4.5.2 Objeto Array|||. . . . . . . . . . . . . . . . . . . . . . . . . . . .|25|
-||4.6 Exceções<br>. . . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|29|
-|**5**|**Web 2.0**||||**31**|
-||5.1 O que é Ajax? . .|.|.|. . . . . . . . . . . . . . . . . . . . . . . . . . . .|31|
-||5.2 O papel do JavaScript . . . . . . . . . . . . . . . . . . . . . . . . . . .||||31|
-||5.3 Exemplo de aplicação Ajax . . . . . . . . . . . . . . . . . . . . . . . .||||35|
-|**6**|**Ferramentas**||||**43**|
+|1|Características básicas da linguagem|2|
+|---|---|---|
+|2|Obtenção e instalação|2|
+|3|Variáveis|3|
+|4|Strings|3|
+||4.1<br>Manipulando Strings . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|4|
+|5|Operações matemáticas|5|
+|6|Entrada de Dados|6|
+|7|Estruturas de controle|7|
+||7.1<br>While<br>. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|7|
+||7.2<br>If . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|7|
+||7.3<br>For . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|8|
+|8|Funções|9|
+||8.1<br>Variáveis em funções . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|11|
+||8.2<br>Recursividade . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|11|
+||8.3<br>Módulos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|12|
+|9|Listas|13|
+||9.1<br>Inserindo um novo dado a uma lista . . . . . . . . . . . . . . . . . . . . . .|15|
+||9.2<br>Impressão dos conteúdos da lista<br>. . . . . . . . . . . . . . . . . . . . . . .|15|
+||9.3<br>Determinar em que ordem um elemento aparece na lista<br>. . . . . . . . . .|16|
+||9.4<br>Remover um elemeto de uma lista . . . . . . . . . . . . . . . . . . . . . . .|16|
+||9.5<br>Descobrir o tamanho de uma lista . . . . . . . . . . . . . . . . . . . . . . .|16|
+||9.6<br>Range<br>. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|17|
+|10|Expressões booleanas|17|
 
-Na verdade, JavaScript é uma linguagem de programação de propósito geral, dinâmica e possui características do paradigma de orientação a objetos. Ela é capaz de realizar virtualmente qualquer tipo de aplicação, e rodará no _browser_ do cliente.
+>>> for contador in range(1, 11):
 
-Strings são sequências de caractéres. Em JavaScript a string pode ser tanto um tipo primitivo de dado como um objeto; no entanto, ao manipulá-la temos a impressão de que sejam objetos pois as strings em JavaScript possuem métodos que podemos invocar para realizar determinadas operações sobre elas. Essa confusão ocorre porque quando criamos uma string primitiva, o JavaScript cria também um objeto string e converte automaticamente entre esses tipos quando necessário.
+A estrutura acima utiliza uma variável criada, no caso contador, para percorrer cada elemento da lista criada com o comando range(1,11), com isso, cada repetição feita pelo loop for fará com que a variável contador aponte para um diferente valor dentro da lista formada pela função range e logo em seguida imprima esse valor.
 
-Este conceito será explicado melhor adiante, quando tratarmos de objetos. Para se declarar uma string, basta colocar uma sequência de caractéres entre aspas simples ou duplas.
+## 9 Listas
 
-var str = "Eu sou uma string!"; var str2 = ’Eu também sou uma string’; // Declaração de strings primitivas var str3 = new String("Outra string"); // Acima um objeto string declarado de forma explícita // não há diferença nenhuma entre esses dois tipos no que se refere // a seu uso.
+Listas são sequências de variáveis. Após denidas, podem ser modicadas de várias maneiras, pois são mutáveis.
 
-Os Arrays são pares do tipo inteiro-valor para se mapear valores a partir de um índice numérico. Em JavaScript os Arrays são objetos com métodos próprios. Um objeto do tipo Array serve para se guardar uma coleção de ítens em uma única variável.
+Alguns comandos referentes a listas:
 
-Na maioria das vezes, quando usamos um laço do tipo _while_ também construímos uma estrutura com um contador que é incrementado a cada passo para controle do laço e manipulação interna de objetos, arrays como nos exemplos anteriores. Os laços _for_ oferecem a vantagem de já possuírem em sua estrutura essa variável de contador e incrementá-la de maneira implícita. Exemplo:
+Nós já vimos anteriormente que variáveis comuns armazenam um único valor. Entretanto, existem outros tipos de variáveis capazes de armazenar mais de um valor. Em Python, chamamos essas variáveis com capacidade de armazenamento de listas ou vetores. Vamos explicar a sintaxe de uma lista através das linhas de código exibidas abaixo:
 
-A segunda forma de se declarar uma função é utilizando o construtor _Function()_ e o operador _new_ , pois em JavaScript funções e objetos são interligados.
+Depois inserimos o comando while 1: que faz com que o nosso programa entre em loop. O programa vai rodar indenidamente até ser dado o comando Ctrl+D, ou até que o programa seja fechado. Uma vez nesse loop, é denida pelo usuário a variável qual_mes", e depois de um tratamento de erros, feito com a utilização de um comando if, é nos devolvido o nome do mês selecionado, Na última linha do código utilizamos uma propriedade da lista, que é buscar um dado da lista, que se dá escrevendo o nome da lista e entre colchetes o número referente ao local da lista onde está o dado requerido (lista[número]). Observe que na nossa linha de código print é dado pelo mês escolhido menos um, ou seja: o Python indexa suas listas partindo do zero.
 
-## **4.5 Objetos**
+Infelizmente o comando .append só consegue adicionar um dado na lista por vez, mas se quisermos adicionar mais dados podemos simplesmente somar listas, multiplicá-las, ou utilizar o comando .extend :
 
-No paradigma de orientação a objetos, os métodos são simplesmente funções que são invocadas por meio de um objeto! E em JavaScript isso é levado tão a sério que a maneira de se criar métodos para seus objetos leva isso ao pé da letra. Basta criarmos uma função e atribuí-la a uma propriedade do objeto.
+## 9.6 Range
 
-Quando declaramos ou atribuímos um método no construtor de um objeto ele ficará disponível para todas as instâncias criadas a partir desse construtor. No entanto, existe um modo muito mais eficiente de se fazer isso, que é com o uso da propriedade _prototype_ . Tudo o que for definido no _prototype_ de um objeto poderá ser referenciado por todas as instâncias desse objeto. Mesmo as propriedades do _prototype_ que forem definidas ou alteradas depois da instanciação serão acessíveis aos objetos declarados anteriormente. Além disso, é importante ter em mente que os atributos e funções declarados no prototype não são copiados para os objetos, portanto há uma economia significativa de memória quando usamos muitas propriedades compartilhadas e instâncias. Exemplo:
+A função range gera um vetor contendo números (inteiros) sequênciais, obedecendo a regra de escrita:
 
-Para finalizar nossa discussão sobre objetos, vamos mostrar como eles podem ser usados como arrays associativos, ou seja, um array com objetos indexados por valores não numéricos. Isso só pode ser feito porque é possível acessarmos atributos de um objeto usando _MeuObjeto["atributo"]_ . Assim podemos simular o comportamento de um array associativo armazenando cada item em um atri-
+range(inicio,m)
 
-A seguir, vamos dedicar atenção aos exemplos de métodos e propriedades de dois importantes objetos nativos do JavaScript: os Arrays e Strings.
+>>>vetor = range(1,11) >>>print vetor
 
-## **4.5.1 Objeto String**
+A função range aceitará quaisquer números inteiros desde que o número inicial seja maior que o número nal, bem como quando apenas o número nal é passado para a função, portanto são válidas as contruções:
 
-**valueOf()** - retona o valor primitivo do objeto string. É útil quando desejamos atribuir o valor de um objeto string para uma variável que seja do tipo primitivo string.
+>>> range(1, 10) [1, 2, 3, 4, 5, 6, 7, 8, 9] >>> range(-32, -20) [-32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22, -21] >>> range(5,21) [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] >>> range(5) [0, 1, 2, 3, 4] >>> range(21, 5) [ ]
 
-**split(separador,limite)** - retorna um objeto Array contendo as substrings que resultaram da separação da string original pelo conteúdo de _separador_ , sem incluí-lo. Se separador for indefinido, o Array resultante terá como elemento apenas a string original. O argumento limite define o número máximo de elementos que o array pode ter, excedido esse valor o Array será truncado. Caso o limite seja indefinido, não haverá um limite no número de elementos do array resultante.
+Outra característica importante desse comando é a de adicionar uma terceira variável no range, indicando o incremento entre os números delimitados.
 
-var dados = "Terra, Marte, Jupiter"; var arr1 = dados.split(", "); var arr2 = dados.split(", ",2); // Em arr1 será armazenado um objeto array contendo na posição 1 // "Terra", na posição 2 "Marte" e na posição 3 "Jupiter". // Já em arr2 será armazenado um array da mesma forma que descrito // acima, no entanto apenas com as duas primeiras posições, ou seja, // sem Jupiter.
+>>>range(0,24,4) [0, 4, 8, 12, 16, 20, 24]
 
-Quanto a propriedades, os objetos do tipo string só possuem uma:
+## 10 Expressões booleanas
 
-## **4.5.2 Objeto Array**
+Ao leitor que não estiver acostumado com o título acima, Expressões Booleanas são sentenças lógicas que seguem as leis da Álgebra de Boole. A Álgebra Booleana trabalha com valores lógicos, interpretando esse valores através de números binários, ao oposto do dec-
 
-Agora faremos uma breve descrição dos métodos que o objeto Array traz consigo.
+Para entender a lógica do que foi feito acima, devemos relembrar alguns conceitos de álgebra booleana. Abaixo temos uma breve descrição sobre os operadores lógicos:
 
-A seguir, vamos dar uma olhada nas propriedades do objeto Arrays. As propriedades são acessadas de modo similar aos métodos, basta usar o nome do objeto.propriedade e depois disso teremos um exemplo simples.
+- Operador not": (em português não") signica uma inversão lógica em uma expressão, o que era verdadeiro, se torna falso, e viceversa.
 
-**constructor** - esta propriedade é uma referência à função que criou este objeto array.
+O programa abaixo mostra um exemplo de aplicação de expressões booleanas. Vamos dizer que precisamos de um programa que indique a situação de um aluno ao nal do ano, sendo que elas são assim:
 
-- **prototype** - permite se adicionar propriedades e métodos a este objeto array. Este é usado na orientação a objetos para que um objeto herde elementos do prototype do outro.
-
-Encerramos nossa discussão sobre objetos aqui. Embora haja mais detalhes que podem ser apresentados e caracterizem o potencial de uso sobre sobre eles, não é objetivo deste documento nos aprofundarmos muito nos tópicos abordados e sim proporcionar as ferramentas para um bom uso inicial da linguagem. Aqueles que se interessarem pelo assunto poderão encontrar muitas informações nos materiais referenciados na Bibliografia.
-
-## **4.6 Exceções**
-
-Nas versões atuais, comandos para manipulação de exceções foram incluídos em JavaScript, de forma similar aos que a linguagem Java oferece. Temos os comandos _throw, try, catch_ e _finally_ . Com eles é possível desenvolver uma aplicação em JavaScript capaz de tratar possíveis erros em tempo de execução, aumentando de maneira considerável sua robustez. Vamos mostrar com exemplos o seu funcionamento.
-
-JavaScript não nos obriga a tratar essas exceções enquanto elas não forem lançadas, por exemplo, no caso acima se tivéssemos passado o argumento corretamente, não receberíamos nenhuma mensagem dizendo que existe uma exceção não tratada. O interpretador irá apenas "reclamar" quando essa exceção for lançada e não estiver sendo tratada, como no caso acima. Agora vejamos como podemos tratá-la.
-
-**initXMLHttpRequest()** - esta função existe apenas devido a incompatibilidade entre os browsers. Como nos dois mais usados o objeto XMLHttpRequest possui diferenças na implementação, essa função testa a existência desses objetos e retorna qual foi encontrado para função sendRequest utilizá-lo.
+Para montar esse programa precisaremos utilizar as Expressões Booleanas, já que precisamos fazer a vericação de duas situações, temos que vericar se o aluno tem nota e se ele tem presença.

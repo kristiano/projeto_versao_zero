@@ -31,13 +31,13 @@ if __name__ == "__main__":
     caminho_md = converter_pdf_para_md(CAMINHO_PDF)
    
    # --- CÓDIGO TESTE ---
-    with open(caminho_md, "r", encoding="utf-8") as arquivo:
-        texto_completo = arquivo.read()
+   # with open(caminho_md, "r", encoding="utf-8") as arquivo:
+    #    texto_completo = arquivo.read()
         
-    print(f"O arquivo tem {len(texto_completo)} caracteres.")
-    print("Abaixo seguem os primeiros 500 caracteres gerados:")
-    print(texto_completo[:500])
-'''
+    #print(f"O arquivo tem {len(texto_completo)} caracteres.")
+    #print("Abaixo seguem os primeiros 500 caracteres gerados:")
+    #print(texto_completo[:500])
+
     # Etapa 2.1 - Identificar assuntos e coletar trecho relevante usando a LLM no arquivo .md
     resultado_llm = localizar_assunto_com_llm(CAMINHO_PDF)
     if resultado_llm is None:
@@ -77,4 +77,3 @@ if __name__ == "__main__":
     print("="*60)
     print(f"\n  Arquivo salvo em: {caminho_pdf}\n")
     print("="*60)
-'''

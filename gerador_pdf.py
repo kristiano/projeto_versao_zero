@@ -43,13 +43,17 @@ class PDFMaterial(FPDF):
 
 def limpar_markdown(texto: str) -> str:
     """Remove símbolos Markdown mantendo o texto."""
+    # Substitui espaços inquebráveis por espaços normais, comuns em scraping e geram palavras "infinitas"
+    texto = texto.replace('\xa0', ' ')
+    
     texto = re.sub(r'\*\*(.+?)\*\*', r'\1', texto)
     texto = re.sub(r'\*(.+?)\*',     r'\1', texto)
     texto = re.sub(r'`(.+?)`',       r'\1', texto)
     texto = re.sub(r'^#{1,6}\s+', '', texto, flags=re.MULTILINE)
-    # Quebra palavras ou sequências muito longas (mais de 60 caracteres) sem espaços
-    # para evitar erro 'Not enough horizontal space' no fpdf2
-    texto = re.sub(r'(\S{60})', r'\1 ', texto)
+    
+    # Reduz de 60 para 40 o tamanho limite de string sem espaço. Letras como W e M ocupam mais espaço 
+    # e podem ultrapassar a página mesmo com poucas repetições, dependendo do tamanho da fonte.
+    texto = re.sub(r'(\S{40})', r'\1 ', texto)
     return texto
 
 
@@ -131,7 +135,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 16)
             pdf.set_text_color(26, 26, 46)
             pdf.ln(4)
-            pdf.multi_cell(0, 9, texto)
+            pdf.multi_cell(0, 9, texto, wrapmode="CHAR")
             pdf.set_draw_color(74, 144, 217)
             pdf.set_line_width(0.4)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -143,7 +147,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 13)
             pdf.set_text_color(74, 144, 217)
             pdf.ln(3)
-            pdf.multi_cell(0, 8, texto)
+            pdf.multi_cell(0, 8, texto, wrapmode="CHAR")
             pdf.ln(2)
 
         # H3
@@ -152,7 +156,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 11)
             pdf.set_text_color(51, 51, 51)
             pdf.ln(2)
-            pdf.multi_cell(0, 7, texto)
+            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
             pdf.ln(1)
 
         # Lista com marcador
@@ -165,7 +169,7 @@ def gerar_pdf(
             pdf.set_xy(10, y)
             pdf.cell(8, 7, "•")
             pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto)
+            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
 
         # Lista numerada
         elif re.match(r'^\d+\.\s', linha_strip):
@@ -177,7 +181,7 @@ def gerar_pdf(
             pdf.set_xy(10, y)
             pdf.cell(8, 7, f"{numero}.")
             pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto)
+            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
 
         # Blockquote
         elif linha_strip.startswith("> "):
@@ -185,7 +189,7 @@ def gerar_pdf(
             pdf.set_fill_color(240, 244, 255)
             pdf.set_font("DejaVu", "I", 11)
             pdf.set_text_color(74, 144, 217)
-            pdf.multi_cell(0, 7, f"  {texto}", fill=True)
+            pdf.multi_cell(0, 7, f"  {texto}", fill=True, wrapmode="CHAR")
             pdf.ln(1)
 
         # Parágrafo normal
@@ -193,7 +197,7 @@ def gerar_pdf(
             texto = limpar_markdown(linha_strip)
             pdf.set_font("DejaVu", "", 11)
             pdf.set_text_color(45, 45, 45)
-            pdf.multi_cell(0, 7, texto)
+            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
             pdf.ln(1)
 
     pdf.output(caminho_pdf)
