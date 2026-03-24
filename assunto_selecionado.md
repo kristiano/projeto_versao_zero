@@ -23,6 +23,8 @@
 ||9.6<br>Range<br>. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .|17|
 |10|Expressões booleanas|17|
 
+Isso nos mostra que uma string segue uma determinada indexação onde cada caractere assume um endereço que, pode ser acessado colocando o nome da variável, que contém a string, e após, entre os colchetes, o endereço da célula que contém o caractere desejado.
+
 >>> for contador in range(1, 11):
 
 A estrutura acima utiliza uma variável criada, no caso contador, para percorrer cada elemento da lista criada com o comando range(1,11), com isso, cada repetição feita pelo loop for fará com que a variável contador aponte para um diferente valor dentro da lista formada pela função range e logo em seguida imprima esse valor.
@@ -39,6 +41,8 @@ Depois inserimos o comando while 1: que faz com que o nosso programa entre em l
 
 Infelizmente o comando .append só consegue adicionar um dado na lista por vez, mas se quisermos adicionar mais dados podemos simplesmente somar listas, multiplicá-las, ou utilizar o comando .extend :
 
+Para remover um elemento de uma lista utilizamos o comando del , referenciando o index, ou posição da lista, onde haverá a remoção.
+
 ## 9.6 Range
 
 A função range gera um vetor contendo números (inteiros) sequênciais, obedecendo a regra de escrita:
@@ -54,15 +58,3 @@ A função range aceitará quaisquer números inteiros desde que o número inici
 Outra característica importante desse comando é a de adicionar uma terceira variável no range, indicando o incremento entre os números delimitados.
 
 >>>range(0,24,4) [0, 4, 8, 12, 16, 20, 24]
-
-## 10 Expressões booleanas
-
-Ao leitor que não estiver acostumado com o título acima, Expressões Booleanas são sentenças lógicas que seguem as leis da Álgebra de Boole. A Álgebra Booleana trabalha com valores lógicos, interpretando esse valores através de números binários, ao oposto do dec-
-
-Para entender a lógica do que foi feito acima, devemos relembrar alguns conceitos de álgebra booleana. Abaixo temos uma breve descrição sobre os operadores lógicos:
-
-- Operador not": (em português não") signica uma inversão lógica em uma expressão, o que era verdadeiro, se torna falso, e viceversa.
-
-O programa abaixo mostra um exemplo de aplicação de expressões booleanas. Vamos dizer que precisamos de um programa que indique a situação de um aluno ao nal do ano, sendo que elas são assim:
-
-Para montar esse programa precisaremos utilizar as Expressões Booleanas, já que precisamos fazer a vericação de duas situações, temos que vericar se o aluno tem nota e se ele tem presença.

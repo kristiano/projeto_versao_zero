@@ -1,12 +1,12 @@
 import os
 
 # main.py
-from questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
-from profiler import get_student_profile
-from leitor_pdf import converter_pdf_para_md
-from rewrite import adaptar_material
-from gerador_pdf import gerar_pdf
-from assuntos_llm import localizar_assunto_com_llm
+from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
+from modulos.aluno.profiler import get_student_profile
+from modulos.pdf.leitor_pdf import converter_pdf_para_md
+from modulos.llm.rewrite import adaptar_material
+from modulos.pdf.gerador_pdf import gerar_pdf
+from modulos.llm.assuntos_llm import localizar_assunto_com_llm
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_PDF = os.path.join(BASE_DIR, "disciplina.pdf")
