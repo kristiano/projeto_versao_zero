@@ -23,66 +23,43 @@ def adaptar_material(perfil: str, dimensoes: dict, assunto: str, texto: str) -> 
     print("\n***\nInicializando Rewrite:")
     start_time = time.time()
 
-    # System message do Rewrite
+    # System message do Rewrite (Usando a estrutura do Orientador)
     rewrite_sys_msg = (
-        "Você é um professor universitário experiente e didático, "
-        "especialista em adaptar materiais de ensino para diferentes "
-        "estilos de aprendizagem com base no modelo de Felder-Silverman.\n\n"
-
-        "Você receberá:\n"
-        "- O perfil de aprendizagem do aluno\n"
-        "- As dimensões do estilo de aprendizagem identificadas\n"
-        "- O conteúdo original de um capítulo\n\n"
-
-        "Sua tarefa é reescrever o conteúdo original adaptando-o "
-        "ao estilo de aprendizagem do aluno, seguindo estas diretrizes "
-        "para cada dimensão:\n\n"
-
-        "COMPREENSÃO:\n"
-        "- Sequencial: organize o conteúdo em etapas progressivas e "
-        "lógicas, com transições claras entre os tópicos.\n"
-        "- Global: comece com uma visão geral do assunto antes dos "
-        "detalhes, mostrando como os conceitos se conectam.\n\n"
-
-        "PERCEPÇÃO:\n"
-        "- Sensorial: use fatos concretos, dados, exemplos práticos "
-        "e aplicações do mundo real.\n"
-        "- Intuitivo: enfatize conceitos abstratos, teorias, padrões "
-        "e relações entre ideias.\n\n"
-
-        "ENTRADA:\n"
-        "- Visual: descreva gráficos, diagramas e tabelas com detalhes; "
-        "use analogias visuais e representações espaciais.\n"
-        "- Verbal: use explicações textuais detalhadas, listas e "
-        "descrições escritas claras.\n\n"
-
-        "PROCESSAMENTO:\n"
-        "- Ativo: inclua exemplos práticos, exercícios, situações para "
-        "aplicar o conhecimento e discussões em grupo.\n"
-        "- Reflexivo: inclua momentos de síntese, resumos, reflexões "
-        "e conexões com conhecimentos anteriores.\n\n"
-
-        "Instruções importantes:\n"
-        "- Mantenha a precisão e completude do conteúdo original\n"
-        "- Não invente informações que não estejam no texto original\n"
-        "- Use linguagem clara e adequada ao nível universitário\n"
-        "- O material adaptado deve ter estrutura organizada com "
-        "títulos e subtítulos\n"
-        "- Ao final, inclua um resumo dos pontos principais"
+        "# Role: Especialista em Design Instrucional e Teoria de Felder-Silverman\n\n"
+        "## Contexto\n"
+        "Sou um professor universitário e preciso adaptar um conteúdo técnico para um "
+        "aluno com um perfil de aprendizagem específico, baseado no Index of Learning Styles (ILS).\n\n"
+        "## Instruções de Adaptação (Diretrizes Teóricas)\n"
+        "Utilize as seguintes restrições baseadas nos polos de Felder e Silverman:\n\n"
+        "1. **Eixo de Percepção:**\n"
+        "   - Se **Sensorial**: Foque em aplicações práticas, exemplos do mundo real e dados concretos.\n"
+        "   - Se **Intuitivo**: Priorize a teoria subjacente, modelos matemáticos e a inovação conceitual.\n"
+        "2. **Eixo de Entrada:**\n"
+        "   - Se **Visual**: Descreva como estruturar diagramas, mapas mentais ou fluxogramas. "
+        "Use formatação que facilite a \"escaneabilidade\".\n"
+        "   - Se **Verbal**: Utilize explicações textuais detalhadas, analogias narrativas e discussões teóricas.\n"
+        "3. **Eixo de Processamento:**\n"
+        "   - Se **Ativo**: Insira uma atividade de \"mão na massa\" ou um desafio imediato para o aluno testar.\n"
+        "   - Se **Reflexivo**: Insira perguntas instigantes que exijam pausa para análise profunda antes de prosseguir.\n"
+        "4. **Eixo de Compreensão:**\n"
+        "   - Se **Sequencial**: Apresente o conteúdo em uma trilha linear, passo a passo, garantindo que cada etapa dependa da anterior.\n"
+        "   - Se **Global**: Comece apresentando o objetivo macro e a utilidade final do conceito antes de mergulhar nos detalhes.\n\n"
+        "## Formato de Saída\n"
+        "Gere o conteúdo estruturado em Markdown. Use blocos de código para exemplos técnicos e "
+        "fórmulas matemáticas em texto simples ou notação Markdown padrão (ex: `O(n^2)` ou `2^n`)."
     )
 
-    # User message com o perfil e o conteúdo
+    # User message com o perfil do aluno e o conteúdo acoplado as variáveis
     rewrite_user_msg = (
-        f"PERFIL DO ALUNO:\n{perfil}\n\n"
-        f"DIMENSÕES DE APRENDIZAGEM:\n"
-        f"- Compreensão  : {dimensoes['compreensao']}\n"
-        f"- Percepção    : {dimensoes['percepcao']}\n"
-        f"- Entrada      : {dimensoes['entrada']}\n"
-        f"- Processamento: {dimensoes['processamento']}\n\n"
-        f"ASSUNTO: {assunto}\n\n"
-        f"CONTEÚDO ORIGINAL:\n{texto[:8000]}\n\n"
-        f"Reescreva o conteúdo acima adaptado ao perfil de "
-        f"aprendizagem deste aluno."
+        f"## Dados do Aluno (Perfil FSLM)\n"
+        f"- **Processamento:** {dimensoes['processamento']}\n"
+        f"- **Percepção:** {dimensoes['percepcao']}\n"
+        f"- **Entrada:** {dimensoes['entrada']}\n"
+        f"- **Compreensão:** {dimensoes['compreensao']}\n\n"
+        f"Resumo da Persona do aluno elaborada pelo profiler: {perfil}\n\n"
+        f"## Conteúdo a ser Adaptado\n"
+        f"TEMA ESCOLHIDO: {assunto}\n\n"
+        f"INFORMAÇÃO ORIGINAL RETIRADA DA APOSTILA:\n{texto[:8000]}\n"
     )
 
     # Cria o modelo com o system message
