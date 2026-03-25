@@ -6,46 +6,51 @@ Nesta versão mais recente, o sistema foi inteiramente otimizado: arquivos legad
 
 ---
 
-## 📂 Visão Geral da Arquitetura do Projeto
+## 📂 Visão Estrutural e Arquitetura do Projeto
 
-Abaixo estão todos os componentes centrais do projeto e como suas responsabilidades estão divididas:
+Abaixo está o mapeamento visual (árvore) de toda a arquitetura organizacional e de pastas do projeto, desenhados para que o ciclo escale mantendo a clareza e separação das responsabilidades de cada etapa do núcleo:
 
-- **`main.py`** 📍  
-  O arquivo principal (orquestrador) do sistema. O processo se inicia aqui, integrando passo-a-passo todos os outros submódulos e arquivos.
-
-- **`questionario.py`** 📝  
-  Contém a lógica de aplicação do Questionário ILS (Index of Learning Styles) de Felder e Silverman. Ele exibe as perguntas, processa as respostas e mapeia as 4 dimensões do aluno (Compreensão, Percepção, Entrada e Processamento).
-
-- **`profiler.py`** 🧠  
-  Recebe os resultados brutos computados pelo questionário e utiliza inteligência artificial (Gemini) para transformar essas chaves em um perfil "humanizado" e textualmente descritivo de como aquele aluno, em especial, aprende melhor.
-
-- **`leitor_pdf.py`** 📄  
-  Utiliza a biblioteca *pymupdf4llm* para ler de forma eficiente apostilas ou materiais inteiros em formato `.pdf` (`disciplina.pdf`) e os converte com alta precisão e integridade para o formato textual `.md` (Markdown).
-
-- **`assuntos_llm.py`** 🔍  
-  Módulo avançado de localização textual com LLM. Ele escaneia a conversão em markdown do componente acima e isola tópicos ou trechos específicos que comporão a próxima lição adaptada que o aluno necessita estudar.
-
-- **`rewrite.py`** ✍️  
-  O núcleo de Inteligência Pedagógica. Recebe (1) o **trecho do assunto listado** e (2) a **persona descrita pelo `profiler.py`**, adaptando o tom, voz, analogias, níveis de abstração e linguagem daquele tópico exatamente para que ele soe como a forma ideal em que esse aluno consegue absorver conteúdo.
-
-- **`gerador_pdf.py`** 🖨️  
-  Motor de estilização final. Recebe o conteúdo que acabou de ser adaptado pelo *rewrite* em Markdown e o traduz novamente para um excelente e polido arquivo `.pdf` através da biblioteca FPDF2, guardando toda formatação estilizada em negrito, listas, layouts na página e evitando erros de margem ("Not enough horizontal space").
-
-- **`gemini_config.py`** ⚙️  
-  Interface de comunicação com os modelos de fundação do Google Gemini e configuração de credenciais via `.env`, gerenciando de forma unificada os parâmetros da API para todo o sistema.
+```text
+projeto_root/
+├── main.py (Orquestrador / Regente do ciclo de dados)
+├── .env (Guarda senhas e sua API_KEY do serviço de IA)
+├── disciplina.pdf (O livro base / material em PDF original)
+└── modulos/
+    ├── aluno/  (Modelagem Psicológico-Comportamental)
+    │   ├── questionario.py (Aplica o teste ILS do perfil Felder-Silverman)
+    │   └── profiler.py     (Constrói a "persona" descritiva do aluno via IA)
+    ├── llm/    (Núcleo de Inteligência e Processamento)
+    │   ├── gemini_config.py (Configurações base Google Gemini de acesso global)
+    │   ├── assuntos_llm.py  (Poda o conteúdo total bruto e isola a proxima lição)
+    │   └── rewrite.py       (A Inteligência Pedagógica: reescreve cirurgicamente o material)
+    └── pdf/    (Motores de Extração IO e Layout)
+        ├── leitor_pdf.py    (Scanner PyMuPDF de conversão livro > Markdown)
+        └── gerador_pdf.py   (Renderiza o texto Markdown de volta em interface PDF rica)
+```
 
 ---
 
-## ⚙️ Como o Sistema Funciona?
+## ⚙️ Como Funciona o Fluxo Principal e Passo a Passo?
 
-O ciclo completo se propaga pelas seguintes etapas quando você roda `python main.py`:
+A automação acontece via `main.py`. Ao iniciar o programa principal (`python main.py`), a comunicação viaja através das pastas em uma cadeia progressiva de tratamento de dados:
 
-1. **Entrevistando o Estudante:** A aplicação captura o modelo cognitivo e sensorial do aluno por meio de perguntas objetivas (Questionário ILS).
-2. **Construindo a Persona Educacional:** O sistema computa o perfil exato dentre os 16 perfis possíveis de Felder-Silverman (Ex: *Ativo, Visual, Sensorial e Sequencial*).
-3. **Extração de Conteúdo:** O sistema lê o material bruto da disciplina (`disciplina.pdf`) e o converte para Markdown.
-4. **Isolamento de Tópicos:** A IA vasculha o texto e separa o assunto ideal ou o trecho que precisa ser estudado.
-5. **A Adaptação Didática (Core):** O text selecionado é enviado em conjunto com o perfil do aluno para a LLM, que reescreve a teoria aplicando métodos condizentes (ex: mais gráficos para visuais, mais passos para sequenciais).
-6. **PDF Final:** O texto personalizado é renderizado de volta em um arquivo de PDF limpo e agradável, pronto para o estudo do aluno.
+### 1. Entendendo Quem é o Aluno (`modulos/aluno/questionario.py`)
+Tudo começa mapeando o estudante cognitivamente. O aplicativo lança perguntas pontuais do clássico questionário de percepção humana. Através de algoritmos se mapeia e ranqueia as **4 dimensões base** (Se este cérebro é Visual ou Verbal, Ativo ou Reflexivo, Sensorial ou Intuitivo, Sequencial ou Global).
+
+### 2. Criando a Identidade Educacional (`modulos/aluno/profiler.py`)
+Com apenas gabaritos "A" ou "B" crus em mãos as enviamos para a IA interpretar. Por design, transformamos pontuações num **perfil em texto realístico de ensinamento**: *"Esse aluno necessita de passos metódicos, detesta textos muito densos e aprende melhor enxergando relações em lista..."*.
+
+### 3. Extraindo a Matéria Bruta (`modulos/pdf/leitor_pdf.py`)
+Pausa e foco apenas no arquivo. Com uma tecnologia altamente avançada e com acurácia nativa voltada à LLMs, processamentos do laboratório de Artifex `pymupdf4llm` pegam todo o pesado material e esmiúçam extraindo páginas, resgates ricos e tabelas completas tudo para a linguagem limpa (*.md Markdown*).
+
+### 4. Recrutando a Próxima Lição (`modulos/llm/assuntos_llm.py`)
+Evitando colapso de memória via saturação e lentidão do servidor enviando livros monumentais, a rotina esmiúça o arquivo Markdown (gerado na extração acima) e garimpa/recorta a fatia cirúrgica e minuciosa que deverá fazer parte exclusiva do currículo estudado agora, exilando todo o resto irrelevante.
+
+### 5. O Motor da Mágica — Adaptação Fina (`modulos/llm/rewrite.py`)
+**Este é o núcleo pedagógico real!** O script pega (A lição cortada) + (O Diagnóstico comportamental) de frente e ordena ao cérebro do LLM reinventar o formato do capítulo do absoluto zero enquadrando os pormenores na visão psicológica ideal. Aqui o conteúdo adquire nova voz, cria novas formas para aquele aluno sem adulterar nenhuma técnica real da literatura.
+
+### 6. Emissão do Compilado Curricular Didático (`modulos/pdf/gerador_pdf.py`)
+A obra de ensino reencarnada em puro formatação baseada em blocos e tags (*Markdown*) retorna ao backend no Python. Para gerar portabilidade e garantir usabilidade de alto nível pro finalista (o estudante), nossa máquina *FPDF2* devolve a estética (negritos precisos, blocos demarcados, paginação harmônica) transformando tudo no brilhante, formatado e responsivo novo arquivo gerado de PDF final.
 
 ---
 
