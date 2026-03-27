@@ -2,7 +2,6 @@ import os
 
 # main.py
 from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
-from modulos.aluno.profiler import get_student_profile
 from modulos.pdf.leitor_pdf import converter_pdf_para_md
 from modulos.llm.rewrite import adaptar_material
 from modulos.pdf.gerador_pdf import gerar_pdf
@@ -21,11 +20,6 @@ if __name__ == "__main__":
     respostas = aplicar_questionario()
     dimensoes = mapear_dimensoes(respostas)
     exibir_resultado(dimensoes)
-
-    # Etapa 1 - Profiler
-    print("\nGerando seu perfil de aprendizagem...")
-    perfil = get_student_profile(respostas, dimensoes)
-    print(f"\n{perfil}\n")
 
     # Etapa 2 - Leitura do PDF e extração do conteúdo para MD (via Python)
     caminho_md = converter_pdf_para_md(CAMINHO_PDF)
@@ -59,7 +53,6 @@ if __name__ == "__main__":
     # Etapa 3 - Adaptação do material com base no contexto do assunto e perfil
     print("\nAdaptando o material ao seu perfil de aprendizagem...")
     material_adaptado = adaptar_material(
-        perfil=perfil,
         dimensoes=dimensoes,
         assunto=assunto_escolhido,
         texto=texto_assunto,

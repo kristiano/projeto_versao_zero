@@ -135,7 +135,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 16)
             pdf.set_text_color(26, 26, 46)
             pdf.ln(4)
-            pdf.multi_cell(0, 9, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 9, texto)
             pdf.set_draw_color(74, 144, 217)
             pdf.set_line_width(0.4)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -147,7 +147,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 13)
             pdf.set_text_color(74, 144, 217)
             pdf.ln(3)
-            pdf.multi_cell(0, 8, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 8, texto)
             pdf.ln(2)
 
         # H3
@@ -156,7 +156,7 @@ def gerar_pdf(
             pdf.set_font("DejaVu", "B", 11)
             pdf.set_text_color(51, 51, 51)
             pdf.ln(2)
-            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 7, texto)
             pdf.ln(1)
 
         # Lista com marcador
@@ -169,7 +169,7 @@ def gerar_pdf(
             pdf.set_xy(10, y)
             pdf.cell(8, 7, "•")
             pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 7, texto)
 
         # Lista numerada
         elif re.match(r'^\d+\.\s', linha_strip):
@@ -181,7 +181,7 @@ def gerar_pdf(
             pdf.set_xy(10, y)
             pdf.cell(8, 7, f"{numero}.")
             pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 7, texto)
 
         # Blockquote
         elif linha_strip.startswith("> "):
@@ -189,7 +189,7 @@ def gerar_pdf(
             pdf.set_fill_color(240, 244, 255)
             pdf.set_font("DejaVu", "I", 11)
             pdf.set_text_color(74, 144, 217)
-            pdf.multi_cell(0, 7, f"  {texto}", fill=True, wrapmode="CHAR")
+            pdf.multi_cell(0, 7, f"  {texto}", fill=True)
             pdf.ln(1)
 
         # Parágrafo normal
@@ -197,7 +197,7 @@ def gerar_pdf(
             texto = limpar_markdown(linha_strip)
             pdf.set_font("DejaVu", "", 11)
             pdf.set_text_color(45, 45, 45)
-            pdf.multi_cell(0, 7, texto, wrapmode="CHAR")
+            pdf.multi_cell(0, 7, texto)
             pdf.ln(1)
 
     pdf.output(caminho_pdf)

@@ -6,12 +6,11 @@ import time
 from modulos.llm.gemini_config import criar_modelo
 
 
-def adaptar_material(perfil: str, dimensoes: dict, assunto: str, texto: str) -> str:
+def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     """
     Adapta o material didático ao perfil de aprendizagem do aluno.
 
     Parâmetros:
-    perfil   : descrição textual do perfil gerado pelo Profiler
     dimensoes: dicionário com as 4 dimensões do Felder-Silverman
     assunto  : nome do capítulo/assunto escolhido pelo aluno
     texto    : conteúdo extraído do PDF
@@ -56,7 +55,6 @@ def adaptar_material(perfil: str, dimensoes: dict, assunto: str, texto: str) -> 
         f"- **Percepção:** {dimensoes['percepcao']}\n"
         f"- **Entrada:** {dimensoes['entrada']}\n"
         f"- **Compreensão:** {dimensoes['compreensao']}\n\n"
-        f"Resumo da Persona do aluno elaborada pelo profiler: {perfil}\n\n"
         f"## Conteúdo a ser Adaptado\n"
         f"TEMA ESCOLHIDO: {assunto}\n\n"
         f"INFORMAÇÃO ORIGINAL RETIRADA DA APOSTILA:\n{texto[:8000]}\n"
