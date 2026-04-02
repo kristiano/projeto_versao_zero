@@ -1,0 +1,7 @@
+streamlit
+pymupdf
+pymupdf4llm
+markitdown
+requests
+weasyprint
+markdown

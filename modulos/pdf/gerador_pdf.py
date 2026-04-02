@@ -1,61 +1,58 @@
 # gerador_pdf.py
-# Geração do material adaptado em PDF formatado
-# Usando fpdf2 com fonte Unicode (DejaVu) para suporte completo ao português
-
 import os
-import re
-from fpdf import FPDF
+import markdown
+from weasyprint import HTML
 from datetime import datetime
 
-# Caminhos das fontes DejaVu (via matplotlib)
-FONTS_DIR = "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/mpl-data/fonts/ttf"
-FONT_REGULAR = f"{FONTS_DIR}/DejaVuSans.ttf"
-FONT_BOLD    = f"{FONTS_DIR}/DejaVuSans-Bold.ttf"
-FONT_ITALIC  = f"{FONTS_DIR}/DejaVuSans-Oblique.ttf"
-
-
-class PDFMaterial(FPDF):
-
-    def __init__(self):
-        super().__init__()
-        self.set_auto_page_break(auto=True, margin=20)
-        # Registra a fonte Unicode
-        self.add_font("DejaVu", "",  FONT_REGULAR, uni=True)
-        self.add_font("DejaVu", "B", FONT_BOLD,    uni=True)
-        self.add_font("DejaVu", "I", FONT_ITALIC,  uni=True)
-
-    def header(self):
-        self.set_font("DejaVu", "I", 9)
-        self.set_text_color(150, 150, 150)
-        self.cell(0, 8, "Material Didático Personalizado - Felder-Silverman", align="R")
-        self.ln(2)
-        self.set_draw_color(74, 144, 217)
-        self.set_line_width(0.3)
-        self.line(10, self.get_y(), 200, self.get_y())
-        self.ln(4)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("DejaVu", "I", 9)
-        self.set_text_color(150, 150, 150)
-        self.cell(0, 10, f"Página {self.page_no()}", align="C")
-
-
-def limpar_markdown(texto: str) -> str:
-    """Remove símbolos Markdown mantendo o texto."""
-    # Substitui espaços inquebráveis por espaços normais, comuns em scraping e geram palavras "infinitas"
-    texto = texto.replace('\xa0', ' ')
-    
-    texto = re.sub(r'\*\*(.+?)\*\*', r'\1', texto)
-    texto = re.sub(r'\*(.+?)\*',     r'\1', texto)
-    texto = re.sub(r'`(.+?)`',       r'\1', texto)
-    texto = re.sub(r'^#{1,6}\s+', '', texto, flags=re.MULTILINE)
-    
-    # Reduz de 60 para 40 o tamanho limite de string sem espaço. Letras como W e M ocupam mais espaço 
-    # e podem ultrapassar a página mesmo com poucas repetições, dependendo do tamanho da fonte.
-    texto = re.sub(r'(\S{40})', r'\1 ', texto)
-    return texto
-
+GITHUB_STYLE_CSS = """
+@page {
+    size: A4;
+    margin: 2cm;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Liberation Sans", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    font-size: 14px;
+    font-variant-ligatures: none;
+}
+.header-box {
+    background-color: #f0f4ff;
+    border: 1px solid #4a90d9;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+.header-box h1 {
+    color: #1a1a2e;
+    font-size: 24px;
+    margin-bottom: 5px;
+    border: none;
+}
+.header-box h2 {
+    color: #4a90d9;
+    font-size: 18px;
+    margin-bottom: 10px;
+    border: none;
+}
+.header-profile {
+    color: #1a1a2e;
+    font-weight: bold;
+}
+.header-profile span {
+    color: #4a90d9;
+    font-weight: normal;
+}
+h1, h2, h3 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+th, td { border: 1px solid #dfe2e5; padding: 6px 13px; }
+th { background-color: #f6f8fa; font-weight: bold; text-align: left; }
+pre { background-color: #f6f8fa; padding: 16px; overflow: auto; border-radius: 3px; font-family: monospace; font-size: 13px; page-break-inside: avoid; }
+code { background-color: rgba(27,31,35,0.05); padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; font-size: 13px; }
+blockquote { padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; margin: 0; }
+img { max-width: 100%; box-sizing: content-box; }
+"""
 
 def gerar_pdf(
     material_adaptado: str,
@@ -63,11 +60,8 @@ def gerar_pdf(
     dimensoes: dict,
     pasta_saida: str = "materiais_gerados"
 ) -> str:
-
-    print("\n***\nGerando PDF do material adaptado...")
-
+    print("\n***\nGerando PDF do material adaptado com padrão Github (WeasyPrint)...")
     os.makedirs(pasta_saida, exist_ok=True)
-
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     caminho_pdf = os.path.join(pasta_saida, f"material_{timestamp}.pdf")
 
@@ -79,127 +73,47 @@ def gerar_pdf(
     )
 
     titulo_curto = assunto[:60] + "..." if len(assunto) > 60 else assunto
+    
+    header_html = f"""
+    <div class="header-box">
+        <h1>Material Did\u00e1tico Personalizado</h1>
+        <h2>{titulo_curto}</h2>
+        <div class="header-profile">Perfil de Aprendizagem: <br><span>{perfil_texto}</span></div>
+        <div style="margin-top:10px; font-size: 11px; color:#999;">Gerado em {datetime.now().strftime('%d/%m/%Y \u00e0s %H:%M')}</div>
+    </div>
+    """
 
-    pdf = PDFMaterial()
+    try:
+        html_body = markdown.markdown(
+            material_adaptado, 
+            extensions=['tables', 'fenced_code', 'sane_lists', 'nl2br']
+        )
+    except Exception as e:
+        print(f"Erro ao parsear Markdown para HTML: {e}")
+        return ""
 
-    # ── Capa ──────────────────────────────────────────────────
-    pdf.add_page()
-    pdf.ln(30)
+    styled_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            {GITHUB_STYLE_CSS}
+        </style>
+    </head>
+    <body>
+        {header_html}
+        {html_body}
+    </body>
+    </html>
+    """
 
-    pdf.set_font("DejaVu", "B", 22)
-    pdf.set_text_color(26, 26, 46)
-    pdf.multi_cell(0, 12, "Material Didático Personalizado", align="C")
-    pdf.ln(6)
+    try:
+        HTML(string=styled_html).write_pdf(caminho_pdf)
+    except Exception as e:
+        print(f"Erro no WeasyPrint ao gerar o PDF: {str(e)}")
+        print("NOTA: O WeasyPrint requer a instala\u00e7\u00e3o do Pango no Mac. (Execute: brew install pango cairo pango libffi)")
+        raise
 
-    pdf.set_font("DejaVu", "B", 16)
-    pdf.set_text_color(74, 144, 217)
-    pdf.multi_cell(0, 10, titulo_curto, align="C")
-    pdf.ln(20)
-
-    # Caixa do perfil
-    pdf.set_fill_color(240, 244, 255)
-    pdf.set_draw_color(74, 144, 217)
-    pdf.set_line_width(0.5)
-    pdf.rect(30, pdf.get_y(), 150, 28, style="FD")
-    pdf.ln(5)
-    pdf.set_font("DejaVu", "B", 11)
-    pdf.set_text_color(26, 26, 46)
-    pdf.cell(0, 8, "Perfil de Aprendizagem:", align="C")
-    pdf.ln(7)
-    pdf.set_font("DejaVu", "", 11)
-    pdf.set_text_color(74, 144, 217)
-    pdf.cell(0, 8, perfil_texto, align="C")
-    pdf.ln(20)
-
-    pdf.set_font("DejaVu", "I", 10)
-    pdf.set_text_color(150, 150, 150)
-    pdf.cell(
-        0, 8,
-        f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}",
-        align="C"
-    )
-
-    # ── Conteúdo ──────────────────────────────────────────────
-    pdf.add_page()
-
-    for linha in material_adaptado.split("\n"):
-        linha_strip = linha.strip()
-
-        if not linha_strip:
-            pdf.ln(4)
-            continue
-
-        # H1
-        if linha_strip.startswith("# "):
-            texto = linha_strip[2:].strip()
-            pdf.set_font("DejaVu", "B", 16)
-            pdf.set_text_color(26, 26, 46)
-            pdf.ln(4)
-            pdf.multi_cell(0, 9, texto)
-            pdf.set_draw_color(74, 144, 217)
-            pdf.set_line_width(0.4)
-            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-            pdf.ln(4)
-
-        # H2
-        elif linha_strip.startswith("## "):
-            texto = linha_strip[3:].strip()
-            pdf.set_font("DejaVu", "B", 13)
-            pdf.set_text_color(74, 144, 217)
-            pdf.ln(3)
-            pdf.multi_cell(0, 8, texto)
-            pdf.ln(2)
-
-        # H3
-        elif linha_strip.startswith("### "):
-            texto = linha_strip[4:].strip()
-            pdf.set_font("DejaVu", "B", 11)
-            pdf.set_text_color(51, 51, 51)
-            pdf.ln(2)
-            pdf.multi_cell(0, 7, texto)
-            pdf.ln(1)
-
-        # Lista com marcador
-        elif linha_strip.startswith("- ") or linha_strip.startswith("* "):
-            texto = limpar_markdown(linha_strip[2:].strip())
-            pdf.set_font("DejaVu", "", 11)
-            pdf.set_text_color(45, 45, 45)
-            x = pdf.get_x()
-            y = pdf.get_y()
-            pdf.set_xy(10, y)
-            pdf.cell(8, 7, "•")
-            pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto)
-
-        # Lista numerada
-        elif re.match(r'^\d+\.\s', linha_strip):
-            texto = limpar_markdown(re.sub(r'^\d+\.\s', '', linha_strip))
-            numero = re.match(r'^(\d+)\.', linha_strip).group(1)
-            pdf.set_font("DejaVu", "", 11)
-            pdf.set_text_color(45, 45, 45)
-            y = pdf.get_y()
-            pdf.set_xy(10, y)
-            pdf.cell(8, 7, f"{numero}.")
-            pdf.set_xy(18, y)
-            pdf.multi_cell(0, 7, texto)
-
-        # Blockquote
-        elif linha_strip.startswith("> "):
-            texto = limpar_markdown(linha_strip[2:].strip())
-            pdf.set_fill_color(240, 244, 255)
-            pdf.set_font("DejaVu", "I", 11)
-            pdf.set_text_color(74, 144, 217)
-            pdf.multi_cell(0, 7, f"  {texto}", fill=True)
-            pdf.ln(1)
-
-        # Parágrafo normal
-        else:
-            texto = limpar_markdown(linha_strip)
-            pdf.set_font("DejaVu", "", 11)
-            pdf.set_text_color(45, 45, 45)
-            pdf.multi_cell(0, 7, texto)
-            pdf.ln(1)
-
-    pdf.output(caminho_pdf)
     print(f"PDF gerado com sucesso: {caminho_pdf}\n***\n")
     return caminho_pdf

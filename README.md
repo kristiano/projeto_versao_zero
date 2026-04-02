@@ -41,7 +41,7 @@ Tudo começa mapeando o estudante cognitivamente. O aplicativo lança perguntas 
 Com apenas gabaritos "A" ou "B" crus em mãos as enviamos para a IA interpretar. Por design, transformamos pontuações num **perfil em texto realístico de ensinamento**: *"Esse aluno necessita de passos metódicos, detesta textos muito densos e aprende melhor enxergando relações em lista..."*.
 
 ### 3. Extraindo a Matéria Bruta (`modulos/pdf/leitor_pdf.py`)
-Pausa e foco apenas no arquivo. Com uma tecnologia altamente avançada e com acurácia nativa voltada à LLMs, processamentos do laboratório de Artifex `pymupdf4llm` pegam todo o pesado material e esmiúçam extraindo páginas, resgates ricos e tabelas completas tudo para a linguagem limpa (*.md Markdown*).
+Pausa e foco apenas no arquivo. Com uma tecnologia altamente avançada e com acurácia nativa voltada à LLMs, processamentos do laboratório de Artifex `pymupdf4llm` pegam todo o pesado material e esmiúçam extraindo páginas, resgates ricos, imagens embutidas nativamente em base64 e tabelas completas tudo para a linguagem limpa (*.md Markdown*).
 
 ### 4. Recrutando a Próxima Lição (`modulos/llm/assuntos_llm.py`)
 Evitando colapso de memória via saturação e lentidão do servidor enviando livros monumentais, a rotina esmiúça o arquivo Markdown (gerado na extração acima) e garimpa/recorta a fatia cirúrgica e minuciosa que deverá fazer parte exclusiva do currículo estudado agora, exilando todo o resto irrelevante.
@@ -50,7 +50,7 @@ Evitando colapso de memória via saturação e lentidão do servidor enviando li
 **Este é o núcleo pedagógico real!** O script pega (A lição cortada) + (O Diagnóstico comportamental) de frente e ordena ao cérebro do LLM reinventar o formato do capítulo do absoluto zero enquadrando os pormenores na visão psicológica ideal. Aqui o conteúdo adquire nova voz, cria novas formas para aquele aluno sem adulterar nenhuma técnica real da literatura.
 
 ### 6. Emissão do Compilado Curricular Didático (`modulos/pdf/gerador_pdf.py`)
-A obra de ensino reencarnada em puro formatação baseada em blocos e tags (*Markdown*) retorna ao backend no Python. Para gerar portabilidade e garantir usabilidade de alto nível pro finalista (o estudante), nossa máquina *FPDF2* devolve a estética (negritos precisos, blocos demarcados, paginação harmônica) transformando tudo no brilhante, formatado e responsivo novo arquivo gerado de PDF final.
+A obra de ensino reencarnada em puro formatação baseada em blocos e tags (*Markdown*) retorna ao backend no Python. Para gerar portabilidade e garantir usabilidade de alto nível pro finalista (o estudante), nossa máquina *WeasyPrint* aliada ao *Python Markdown* converte o formato cru em blocos em HTML rico e devolve a estética (negritos precisos, blocos demarcados, paginação, imagens perfeitamente renderizadas) transformando tudo no brilhante, formatado e responsivo novo arquivo gerado de PDF final (seguindo idêntico CSS utilizado no GitHub).
 
 ---
 
@@ -74,5 +74,5 @@ graph TD
     H -->|Prompt Eng. c/ Perfil do Estudante| I[Material Personalizado em Markdown]
     
     I --> J(gerador_pdf.py)
-    J -->|Renderização FPDF2| K[(PDF Final Adaptado e Formatado)]
+    J -->|Renderização WeasyPrint + CSS Estilizado| K[(PDF Final Adaptado e Formatado com imagens)]
 ```

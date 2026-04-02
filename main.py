@@ -1,4 +1,10 @@
 import os
+import sys
+
+# Repassando a biblioteca do Homebrew para solucionar importação do WeasyPrint (libpango) no Mac
+if sys.platform == 'darwin' and "/opt/homebrew/lib" not in os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", ""):
+    os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", "")
+    os.execv(sys.executable, ['python'] + sys.argv)
 
 # main.py
 from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado

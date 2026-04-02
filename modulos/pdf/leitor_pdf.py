@@ -9,8 +9,8 @@ def converter_pdf_para_md(caminho_pdf: str) -> str:
     """
     print(f"\nLendo PDF e convertendo para Markdown com pymupdf4llm: {caminho_pdf}")
     
-    # Extrair todo o PDF como Markdown
-    md_text = pymupdf4llm.to_markdown(caminho_pdf)
+    # Extrair todo o PDF como Markdown com imagens embutidas (base64)
+    md_text = pymupdf4llm.to_markdown(caminho_pdf, embed_images=True)
     
     # Definir o caminho para o arquivo conteudo.md
     base_dir = os.path.dirname(os.path.abspath(caminho_pdf))
