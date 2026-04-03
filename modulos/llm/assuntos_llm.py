@@ -1,14 +1,16 @@
 import os
 import json
+import re
 from typing import List, Dict, Tuple, Optional
 from modulos.llm.gemini_config import criar_modelo
 
 def _extrair_amostras_md(
     caminho_md: str,
-    max_chars: int = 12000,
+    max_chars: int = 15000,
 ) -> str:
     """
     Extrai uma amostra textual do arquivo markdown para a LLM:
+    - remove tags de imagens gigantes em Base64 para não poluir a amostra
     - pega os primeiros caracteres (limitado por max_chars)
     """
     if not os.path.exists(caminho_md):
@@ -17,8 +19,11 @@ def _extrair_amostras_md(
     with open(caminho_md, "r", encoding="utf-8") as f:
         texto_completo = f.read()
         
-    # Retorna uma amostra do início do documento
-    return texto_completo[:max_chars]
+    # Limpa as imagens gigantes em base64 e dados binários que esgotam o limite de caracteres
+    texto_limpo = re.sub(r'!\[.*?\]\(data:image/[^)]+\)', '', texto_completo)
+        
+    # Retorna uma amostra limpa do início do documento
+    return texto_limpo[:max_chars]
 
 
 def _sugerir_assuntos_com_llm(

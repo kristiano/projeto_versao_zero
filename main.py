@@ -22,6 +22,12 @@ if __name__ == "__main__":
     print("   SISTEMA DE PERSONALIZAÇÃO DE MATERIAIS DIDÁTICOS")
     print("="*60)
 
+    if not os.path.exists(CAMINHO_PDF):
+        print("\nO ARQUIVO 'disciplina.pdf' NÃO FOI ENCONTRADO NA PASTA! Por favor, adicione o arquivo base.")
+        raise SystemExit(0)
+    
+    print(f"\nPDF base detectado: {os.path.basename(CAMINHO_PDF)}")
+
     # Etapa 1 - Questionário
     respostas = aplicar_questionario()
     dimensoes = mapear_dimensoes(respostas)
@@ -29,6 +35,7 @@ if __name__ == "__main__":
 
     # Etapa 2 - Leitura do PDF e extração do conteúdo para MD (via Python)
     caminho_md = converter_pdf_para_md(CAMINHO_PDF)
+
    
    # --- CÓDIGO TESTE ---
    # with open(caminho_md, "r", encoding="utf-8") as arquivo:
