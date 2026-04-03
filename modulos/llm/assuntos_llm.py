@@ -163,7 +163,8 @@ def localizar_assunto_com_llm(
             print(f"     - {desc}")
 
     print("\nDigite o número do assunto que deseja adaptar.")
-    print("Ou pressione Enter em branco para cancelar.")
+    print("Ou digite o TEMA ESPECÍFICO desejado se preferir buscar algo próprio.")
+    print("Pressione Enter em branco para cancelar.")
 
     escolhido = None
     while True:
@@ -171,22 +172,29 @@ def localizar_assunto_com_llm(
         if not resp:
             print("\nOperação cancelada pelo usuário.")
             return None
+            
         try:
             num = int(resp)
-        except ValueError:
-            print("  ⚠ Entrada inválida. Digite apenas o número do assunto.")
-            continue
-
-        for item in topicos:
-            if int(item.get("id")) == num:
-                escolhido = item
+            for item in topicos:
+                if int(item.get("id")) == num:
+                    escolhido = item
+                    break
+            if escolhido is None:
+                print("  ⚠ ID não encontrado na lista. Tente novamente.")
+            else:
                 break
-        if escolhido is None:
-            print("  ⚠ ID não encontrado na lista. Tente novamente.")
-        else:
+        except ValueError:
+            # Trata entrada textual livre como assunto personalizado
+            palavras_extras = [p.strip() for p in resp.replace(',', ' ').split() if len(p.strip()) >= 3]
+            escolhido = {
+                "id": "Personalizado",
+                "titulo": resp,
+                "descricao": "Tópico inserido manualmente pelo usuário.",
+                "palavras_chave": palavras_extras
+            }
             break
 
-    titulo = str(escolhido.get("titulo", "")).strip() or f"Assunto {escolhido['id']}"
+    titulo = str(escolhido.get("titulo", "")).strip() or f"Assunto {escolhido.get('id')}"
     palavras_chave = escolhido.get("palavras_chave") or []
 
     texto_assunto = _extrair_trecho_por_palavras_chave_md(

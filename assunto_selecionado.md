@@ -1,35 +1,44 @@
-são fundamentais para uma compreensão sólida e abrangente deste tópico. Eles serão minuciosamente explorados e explicados ao longo deste livro, fornecendo a você as ferramentas essenciais necessárias para enfrentar os desafios complexos e emocionantes da Ciência de Dados. Os temas incluem a análise criteriosa de dados, reconhecimento das distribuições de probabilidade subjacentes, estimação de parâmetros importantes e a aplicação desses conceitos na construção e avaliação de modelos de Machine Learning. Além disso, os leitores e leitoras aprenderão a quantificar incertezas, medir o desempenho preditivo e selecionar métricas adequadas para avaliar seus modelos, tudo dentro do contexto dinâmico e interdisciplinar da Ciência de Dados.
+|**1 Introdução**|**1**|
+|---|---|
+|1.1 Por que estudar Estatística para Ciência de Dados?|1|
+|1.2 Conceitos fundamentais|4|
+|1.3 Estatística e Ciência de Dados|10|
+|**2 Estatística Descritiva: Conceitos básicos, tipos de variáveis e**||
+|**gráficos**|**12**|
+|2.1 Conceitos básicos|13|
+|2.2 Variáveis e tipos de variáveis|16|
+|2.3 Gráficos adequados a cada tipo de variável|18|
+|2.4 Correlação|30|
+|**3 Estatística Descritiva: Medidas de tendência central e de**||
+|**dispersão**|**36**|
+|3.1 Medidas de tendência central|36|
+|3.2 Medidas de dispersão|56|
+|3.3 Boxplot, ou diagrama de caixas|60|
+|3.4 Resumo|62|
+|**4 Cálculo das Probabilidades: Conceitos e fundamentos**|**64**|
 
-Um projeto de Ciência de Dados começa com um **problema, necessidade ou ideia** . Nesta etapa inicial, deve-se primeiro ter em mente o problema que se deseja resolver, e, em seguida, os objetivos devem ser definidos, bem como elencar as perguntas que as pessoas gestoras desejam responder. A segunda etapa consiste em levantar as informações necessárias e efetivamente coletar os dados para resolver os problemas levantados na etapa anterior. Nesta etapa é realizada a **análise exploratória de dados** que busca, entre outras atividades, identificar dados ruidosos, incompletos ou incorretos. Exemplos de problemas que podemos encontrar nos dados na etapa de análise exploratória são:
+## 3.3 BOXPLOT, OU DIAGRAMA DE CAIXAS
 
-- dados insuficientes ou pouco representativos, por exemplo, coletados apenas em um bairro quando precisamos analisar toda uma cidade.
+Para trabalharmos com as medidas de tendência central e de dispersão graficamente, podemos usar o diagrama de caixas (em inglês, boxplot), que é uma representação gráfica da distribuição dos dados. Esse diagrama nos dá informação da assimetria da distribuição, da presença de outliers (valores atípicos) e da variabilidade dos dados por meio da amplitude (Máx-Min). Esse conceito é ilustrado pela figura a seguir:
 
-A Estatística nos oferece diversas ferramentas e técnicas para analisarmos com cuidado os nossos dados e nos ajudar a identificar problemas e possibilitar o tratamento adequado destes dados na etapa seguinte, de **pré-processamento** . Existem diversas técnicas que podem ser utilizadas para tratar estes e outros problemas encontrados nos dados, tais como a limpeza (exclusão de linhas ou colunas), preenchimento de valores faltantes (usando, por exemplo, a média, moda ou mediana dos dados) ou mesmo o enriquecimento de dados (obtenção de dados a partir de outras fontes ou novas coletas).
+**60** 3.3 BOXPLOT, OU DIAGRAMA DE CAIXAS
 
-modelos e avaliamos os resultados de cada modelo, usando métricas e um processo justo de comparação.
+Figura 3.18: Diagrama de Boxplot.
 
-No **pós-processamento** a Estatística contribui com métodos para avaliar a precisão e a confiabilidade dos resultados dos modelos, através de métricas de desempenho, intervalos de confiança e testes de significância. A Ciência de Dados pode ser empregada neste ponto para integrar técnicas de interpretabilidade de modelos e explicabilidade para fornecer insights sobre como os modelos fazem suas predições.
+Há diversas bibliotecas em Python que podemos utilizar para gerar boxplots. No exemplo a seguir, utilizaremos as bibliotecas **Seaborn** e **Pyplot** para gerar boxplots agrupados por espécies da característica "Petal Length" do conhecido dataset de flores Iris (para saber mais sobre este dataset https://en.wikipedia.org/wiki/Iris_flower_data_set):
 
-**Dados brutos:** são dados na sua forma mais primitiva, desprovidos de ordenação, assim que coletados.
+# Carregando o dataset dados = sns.load_dataset('iris') # Plotando um boxplot por species da característica petal length sns.boxplot(x=dados["species"], y=dados["petal_length"]) plt.show()
 
-- **Correlação de Spearman:** também conhecida como Correlação de Classificação, avalia a relação monotônica entre duas variáveis, independentemente de ser linear. É útil quando as variáveis não têm distribuições normais. Este método é baseado na classificação dos valores coletados e não nos próprios valores, podendo ser usado para variáveis em escalas ordinais.
+Um boxplot pode ser criado em R chamando a função ggplot()  e passando como parâmetros os dados, os eixos x e y e a geometria de interesse:  geom_boxplot() :
 
-As médias Geométricas e Harmônicas são bastante utilizadas pelos economistas ao calcular números índices para mensurar a inflação da economia de um país, deflacionar séries históricas de aluguéis e preço de imóveis, por meio de índices como IGP (Índice geral de preços) mantido pela FGV (Fundação Getúlio Vargas) e o IPCA (Índice de preços ao consumidor amplo) calculado mensalmente pelo IBGE para calcular a variação dos preços no comércio. A Média Harmônica tem uma aplicação bastante importante em problemas de classificação de Machine Learning, sendo utilizada para calcular a métrica F1 Score, que é a Média Harmônica das métricas de precisão e recall.
+# Carregando a biblioteca library(ggplot2) # Utilizando o dataset nativo Iris dados = iris # Plotando um boxplot por Species da característica Petal.Length ggplot(dados, aes(x=Species, y=Petal.Length, fill=Species)) + geom_boxplot()
 
-Figura 3.10: Distribuições Simétricas e Assimétricas.
+3.3 BOXPLOT, OU DIAGRAMA DE CAIXAS **61**
 
-**Avaliação de desempenho de modelos:** ao treinar e avaliar modelos de Machine Learning, é comum calcular métricas de desempenho, como precisão, recall, F1-score, entre outras. Em vez de relatar uma única pontuação para essas métricas, os intervalos de confiança podem ser calculados para indicar a faixa de valores dentro da qual a verdadeira métrica de desempenho pode estar com um determinado nível de confiança. Isso fornece uma compreensão mais robusta do desempenho do modelo.
+Sejam os eventos A e B, dispostos no diagrama de Venn:
 
-**Comparação de modelos:** ao comparar diferentes modelos de Machine Learning, os intervalos de confiança podem ajudar a determinar se as diferenças observadas nas métricas de desempenho são estatisticamente significativas.
+Vejamos um exemplo de código em Python usando a biblioteca scikit-learn. Primeiramente, vamos carregar o dataset e separar em bases de treino e teste através do método holdout. Em seguida, para a base de treino, vamos avaliar a acurácia dos modelos treinados com os algoritmos Regressão Logística, KNN, Árvore de Classificação, Naive Bayes e SVM, utilizando sua configuração padrão da biblioteca Scikit-learn, ou seja, sem variar seus hiperparâmetros (exceto na Regressão Logística, em que utilizaremos um parâmetro para limitar o número de iterações e evitar que o código demore muito tempo para ser executado). Para uma melhor avaliação, utilizaremos o método de validação cruzada (10 folds) e compararemos os resultados graficamente através de boxplots.
 
-3. Avaliar os resultados de cada modelo, usando métricas e um processo justo de comparação
+# Avaliando um modelo por vez for name, model in models: cv_results = cross_val_score(model, X_train, y_train, cv=kfold, scoring=scoring) results.append(cv_results) names.append(name) msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std( )) # média e desvio padrão dos 10 resultados da validação cruzada print(msg) # boxplot de comparação dos algoritmos fig = plt.figure() fig.suptitle('Comparação da Acurácia dos Modelos') ax = fig.add_subplot(111) plt.boxplot(results) ax.set_xticklabels(names) plt.show()
 
-A Experimentação Contínua é aplicada neste contexto para testar hipóteses associadas a estes modelos, assegurando que um novo modelo melhore o desempenho do anterior com significância estatística. Estas hipóteses podem estar associadas tanto a métricas específicas do modelo (como aumentar a acurácia ou o recall para problemas de classificação ou diminuir o RMSE para problemas de regressão), quanto a outros aspectos que podem afetar o uso do modelo em cenários operacionais (tais como o tempo de aprendizado, o tempo de inferência, entre outros) ou a resultados de negócio afetados pelo uso do modelo (como um aumento de vendas através de melhorias em uma classificação automática de produtos). Uma visão mais detalhada dos aspectos que podem precisar ser considerados encontra-se no livro Engenharia de Software para Ciência de Dados publicado pela editora Casa do Código.
-
-Uma **hipótese** é uma teoria ou suposição que é testada usando dados e análise estatística e que pode explicar um comportamento determinado do interesse de pesquisa. Por exemplo, considerando um modelo de Machine Learning para classificar bons e maus pagadores de empréstimos bancários, uma hipótese a ser testada poderia ser: "O modelo de Machine Learning A sugere a concessão de crédito para clientes com melhor acurácia do que o modelo de Machine Learning B". Um estudo experimental tem como objetivo coletar dados, a partir de um ambiente controlado, para confirmar ou refutar a hipótese. Hipóteses orientam a definição de variáveis, a saber:
-
-2. Coleta de dados: predições de ambos os modelos são coletadas para diversos conjuntos de teste para medir o desempenho nas métricas de interesse para cada um destes conjuntos. Essas métricas devem refletir as variáveis dependentes do experimento e podem ser, por exemplo, a acurácia, a precisão ou o erro médio quadrático.
-
-Como vimos, um estudo experimental tem como objetivo coletar dados para confirmar ou refutar uma hipótese. Dentro da etapa de Análise Estatística, a escolha do teste estatístico
-
-Como mencionado, a escolha do teste de hipótese depende da natureza dos dados, do tamanho da amostra, da distribuição dos dados e da pergunta específica que está sendo investigada. Se os dados se aproximarem de uma distribuição normal e atenderem às outras suposições dos testes paramétricos, esses testes geralmente são preferíveis devido ao seu maior poder estatístico. Como veremos a seguir, também é importante definir o nível de significância (alpha) a ser testado para controlar o risco de erro tipo I (rejeitar erroneamente a hipótese nula) e interpretar os resultados com cuidado. Experimentação Contínua em Machine Learning envolve a coleta e análise contínua de dados, tornando a escolha e aplicação dos testes de hipótese uma parte crítica do processo de avaliação e tomada de decisões. Também neste capítulo veremos mais detalhes e exemplos de códigos destes testes de hipótese.
+Analisando os resultados, verificamos que, considerando a acurácia média, o modelo treinado com o Naïve Bayes apresentou os melhores resultados (95% de acurácia média) seguido do modelo treinado com a Regressão Logística (94% de acurácia média), ambos com desvio padrão equivalente (5%). Já analisando os boxplots, vemos que a mediana da acurácia do modelo treinado com o Naïve Bayes é superior à do modelo treinado com a Regressão Logística, indicando que possivelmente seguiríamos com o Naïve Bayes como escolha de algoritmo. Neste caso, faríamos:
