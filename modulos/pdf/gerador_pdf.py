@@ -1,11 +1,6 @@
 # gerador_pdf.py
 import os
 import markdown
-import re
-import zlib
-import base64
-import urllib.request
-import tempfile
 from weasyprint import HTML
 from datetime import datetime
 
@@ -59,38 +54,6 @@ blockquote { padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; 
 img { max-width: 100%; box-sizing: content-box; }
 """
 
-def _renderizar_diagramas_mermaid(texto_md: str):
-    arquivos_temporarios = []
-    
-    def gerador_url_mermaid(match):
-        codigo = match.group(1).strip()
-        try:
-            # Compressão zlib necessária p/ kroki.io e encode Base64 UrlSafed
-            comprimido = zlib.compress(codigo.encode('utf-8'), 9)
-            b64_url = base64.urlsafe_b64encode(comprimido).decode('utf-8')
-            end_point_kroki = f"https://kroki.io/mermaid/svg/{b64_url}"
-            
-            # Request com bypass de User Agent para não receber 403 Forbidden
-            req = urllib.request.Request(end_point_kroki, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as resposta:
-                svg_conteudo = resposta.read()
-                
-            # Salvar como um arquivo físico nativo
-            f_id, tmp_caminho = tempfile.mkstemp(suffix=".svg")
-            with os.fdopen(f_id, 'wb') as file:
-                file.write(svg_conteudo)
-                
-            arquivos_temporarios.append(tmp_caminho)
-            
-            # Ancorar a imagem
-            return f"\n\n![Diagrama Visual Gerado]({tmp_caminho})\n\n"
-        except Exception as e:
-            print(f"Alerta: Falha ao compilar diagrama Mermaid - Erro: {str(e)}")
-            return "\n*(Não foi possível carregar a imagem do diagrama conceitual neste momento)*\n"
-            
-    novo_texto = re.sub(r'```mermaid(.*?)```', gerador_url_mermaid, texto_md, flags=re.DOTALL)
-    return novo_texto, arquivos_temporarios
-
 def gerar_pdf(
     material_adaptado: str,
     assunto: str,
@@ -124,9 +87,6 @@ def gerar_pdf(
         <div style="margin-top:10px; font-size: 11px; color:#999;">Gerado em {datetime.now().strftime('%d/%m/%Y \u00e0s %H:%M')}</div>
     </div>
     """
-
-    # Conversão das tags mermaid isoladas da LLM
-    material_adaptado, svgs_temporarios = _renderizar_diagramas_mermaid(material_adaptado)
 
     try:
         html_body = markdown.markdown(
@@ -168,10 +128,6 @@ def gerar_pdf(
             os.dup2(old_stderr_fd, 2) # Restaura original
             os.close(devnull_fd)
             os.close(old_stderr_fd)
-            # Acabar com SVGs temporários de diagramas processados
-            for temp in svgs_temporarios:
-                if os.path.exists(temp):
-                    os.unlink(temp)
             
     except Exception as e:
         print(f"Erro no WeasyPrint ao gerar o PDF: {str(e)}")
