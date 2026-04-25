@@ -1,78 +1,150 @@
 # Sistema de Personalização de Materiais Didáticos
 
-Bem-vindo ao repositório do **Sistema de Personalização de Materiais Didáticos**. Este projeto visa adaptar automaticamente o conteúdo de disciplinas educacionais para alinhar-se com o perfil cognitivo de cada estudante, utilizando o modelo de estilo de aprendizagem de **Felder-Silverman** integrado com as capacidades das inteligências artificiais de linguagem profunda (**LLMs Google Gemini**).
-
-Nesta versão mais recente, o sistema foi inteiramente otimizado: arquivos legados foram removidos e o fluxo principal foi consolidado, garantindo alta performance e um código limpo.
+Sistema acadêmico desenvolvido no âmbito do **Mestrado em Ciência da Computação — UFMA**, cujo objetivo é adaptar automaticamente materiais didáticos em PDF ao perfil cognitivo de cada estudante, com base no modelo de estilos de aprendizagem de **Felder-Silverman (ILS)** integrado à **API Gemini (Google AI)**.
 
 ---
 
-## 📂 Visão Estrutural e Arquitetura do Projeto
-
-Abaixo está o mapeamento visual (árvore) de toda a arquitetura organizacional e de pastas do projeto, desenhados para que o ciclo escale mantendo a clareza e separação das responsabilidades de cada etapa do núcleo:
+## 📂 Arquitetura do Projeto
 
 ```text
-projeto_root/
-├── main.py (Orquestrador / Regente do ciclo de dados)
-├── .env (Guarda senhas e sua API_KEY do serviço de IA)
-├── disciplina.pdf (O livro base / material em PDF original)
+projeto_bkb/
+├── main.py                          # Orquestrador do pipeline completo
+├── .env                             # Variáveis de ambiente (API keys) — não versionar
+├── disciplina.pdf                   # Material base em PDF — fornecido pelo usuário
 └── modulos/
-    ├── aluno/  (Modelagem Psicológico-Comportamental)
-    │   ├── questionario.py (Aplica o teste ILS do perfil Felder-Silverman)
-    │   └── profiler.py     (Constrói a "persona" descritiva do aluno via IA)
-    ├── llm/    (Núcleo de Inteligência e Processamento)
-    │   ├── gemini_config.py (Configurações base Google Gemini de acesso global)
-    │   ├── assuntos_llm.py  (Poda o conteúdo total bruto e isola a proxima lição)
-    │   └── rewrite.py       (A Inteligência Pedagógica: reescreve cirurgicamente o material)
-    └── pdf/    (Motores de Extração IO e Layout)
-        ├── leitor_pdf.py    (Scanner PyMuPDF de conversão livro > Markdown)
-        └── gerador_pdf.py   (Renderiza o texto Markdown de volta em interface PDF rica)
+    ├── aluno/
+    │   └── questionario.py          # Questionário ILS e mapeamento de dimensões
+    ├── llm/
+    │   ├── gemini_config.py         # Configuração da SDK Gemini com retry automático
+    │   ├── assuntos_llm.py          # Identifica e extrai o tópico escolhido via LLM
+    │   └── rewrite.py               # Adapta o conteúdo ao perfil do aluno via LLM
+    └── pdf/
+        ├── leitor_pdf.py            # Converte PDF → Markdown (pymupdf4llm)
+        └── gerador_pdf.py           # Renderiza Markdown → PDF (WeasyPrint + CSS GitHub)
 ```
 
 ---
 
-## ⚙️ Como Funciona o Fluxo Principal e Passo a Passo?
+## ⚙️ Como Funciona
 
-A automação acontece via `main.py`. Ao iniciar o programa principal (`python main.py`), a comunicação viaja através das pastas em uma cadeia progressiva de tratamento de dados:
+Ao executar `python main.py`, o pipeline percorre 5 etapas em sequência:
 
-### 1. Entendendo Quem é o Aluno (`modulos/aluno/questionario.py`)
-Tudo começa mapeando o estudante cognitivamente. O aplicativo lança perguntas pontuais do clássico questionário de percepção humana. Através de algoritmos se mapeia e ranqueia as **4 dimensões base** (Se este cérebro é Visual ou Verbal, Ativo ou Reflexivo, Sensorial ou Intuitivo, Sequencial ou Global).
+### 1. Questionário de Perfil (`modulos/aluno/questionario.py`)
+O aluno responde 4 perguntas do **Index of Learning Styles (ILS)**, que mapeiam as dimensões do modelo de Felder-Silverman:
 
-### 2. Criando a Identidade Educacional (`modulos/aluno/profiler.py`)
-Com apenas gabaritos "A" ou "B" crus em mãos as enviamos para a IA interpretar. Por design, transformamos pontuações num **perfil em texto realístico de ensinamento**: *"Esse aluno necessita de passos metódicos, detesta textos muito densos e aprende melhor enxergando relações em lista..."*.
+| Dimensão | Opção A | Opção B |
+|---|---|---|
+| Compreensão | Sequencial | Global |
+| Percepção | Sensorial | Intuitivo |
+| Entrada | Visual | Verbal |
+| Processamento | Ativo | Reflexivo |
 
-### 3. Extraindo a Matéria Bruta (`modulos/pdf/leitor_pdf.py`)
-Pausa e foco apenas no arquivo. Com uma tecnologia altamente avançada e com acurácia nativa voltada à LLMs, processamentos do laboratório de Artifex `pymupdf4llm` pegam todo o pesado material e esmiúçam extraindo páginas, resgates ricos, imagens embutidas nativamente em base64 e tabelas completas tudo para a linguagem limpa (*.md Markdown*).
+### 2. Leitura do PDF (`modulos/pdf/leitor_pdf.py`)
+O arquivo `disciplina.pdf` é processado via `pymupdf4llm`, convertendo todo o conteúdo textual para formato Markdown (`.md`). Imagens do PDF original não são embutidas — o foco é a fidelidade do texto para uso com LLMs.
 
-### 4. Recrutando a Próxima Lição (`modulos/llm/assuntos_llm.py`)
-Evitando colapso de memória via saturação e lentidão do servidor enviando livros monumentais, a rotina esmiúça o arquivo Markdown (gerado na extração acima) e garimpa/recorta a fatia cirúrgica e minuciosa que deverá fazer parte exclusiva do currículo estudado agora, exilando todo o resto irrelevante.
+### 3. Identificação do Tópico (`modulos/llm/assuntos_llm.py`)
+Uma amostra do Markdown gerado é enviada ao Gemini, que sugere de 3 a 8 tópicos principais da disciplina. O aluno escolhe o tópico desejado (ou digita um tema livre). O sistema então extrai o trecho relevante do conteúdo usando as palavras-chave do tópico.
 
-### 5. O Motor da Mágica — Adaptação Fina (`modulos/llm/rewrite.py`)
-**Este é o núcleo pedagógico real!** O script pega a lição recortada e o diagnóstico comportamental do aluno e solicita à LLM que reinvente o formato do capítulo do zero, alinhando as metodologias explicativas ao raciocínio lógico daquele cérebro. Aqui o conteúdo adquire nova voz, cria exemplos práticos diferenciados e, caso o aluno possua um perfil visual aguçado, a IA é instruída a reutilizar diretamente as imagens e ilustrações da apostila original contextualizando-as à sua explicação teórica, evitando gastar processamento externo ou inventar imagens do zero.
+### 4. Adaptação Pedagógica (`modulos/llm/rewrite.py`)
+O trecho do tópico e o perfil do aluno são enviados ao Gemini com um prompt estruturado segundo as diretrizes do ILS:
+- **Sensorial/Intuitivo** → ênfase em exemplos práticos ou teoria conceitual
+- **Visual/Verbal** → tags para representações visuais ou explicações narrativas detalhadas
+- **Ativo/Reflexivo** → desafios práticos imediatos, ou perguntas instigantes para reflexão
+- **Sequencial/Global** → trilha linear passo a passo, ou visão macro antes dos detalhes
 
-### 6. Emissão do Compilado Curricular Didático (`modulos/pdf/gerador_pdf.py`)
-A obra de ensino reencarnada em formatação de blocos e tags (*Markdown*) retorna ao Python sendo salva primeiro nas pastas de `materiais_gerados/` para segurança e portabilidade. Após manter de forma pura as imagens nativas originais (Base64) injetadas no texto de estudo, a engrenagem repassa o compilado integral para o motor **WeasyPrint**, que usa sua engine HTML rica revestida pelo tema oficial refinado do **GitHub CSS** criando tabelas suaves, paginações exatas e uma beleza visual inigualável em formato PDF com compatibilidade silenciada fluída para o macOS.
+### 5. Geração de Prompts Visuais (`modulos/llm/image_generator.py`)
+Para alunos com perfil **Visual**, a IA gera blocos no formato `[SUGESTAO_IMAGEM: <prompt>]`. O módulo de imagens identifica essas ocorrências e formata um bloco de citação (Blockquote) Markdown. Esses prompts ficam visíveis no texto final para que o usuário possa gerar manualmente as imagens em ferramentas externas (como Midjourney ou DALL-E) com precisão.
+
+### 6. Geração do PDF (`modulos/pdf/gerador_pdf.py`)
+O material adaptado em Markdown é salvo na raiz e convertido para PDF via **WeasyPrint**, com tema visual inspirado no estilo do GitHub (tipografia limpa, tabelas, blocos de código e cabeçalho com o perfil do aluno).
 
 ---
 
-## 🔄 Fluxograma de Funcionamento
-
-O fluxograma a seguir demonstra a dinâmica modular das informações geradas até a entrega do PDF final:
+## 🔄 Fluxograma
 
 ```mermaid
 graph TD
-    A[main.py - Inicialização do Programa] --> B(questionario.py)
-    B -->|Respostas do Questionário ILS| C(profiler.py)
-    C -->|Perfil de Aprendizagem Textual| H
+    A[main.py] --> B(questionario.py\nQuestionário ILS)
+    B -->|4 dimensões do perfil| H
+
+    A --> D(leitor_pdf.py\npymupdf4llm)
+    D -->|conteudo.md| F(assuntos_llm.py\nSugestão de tópicos via LLM)
+    F -->|Trecho do tópico escolhido| H
+
+    H(rewrite.py\nAdaptação pedagógica via LLM)
+    H -->|Material adaptado com tags visuais| I
     
-    A --> D(leitor_pdf.py)
-    D -->|Extração via pymupdf4llm| E[Texto em Formato Markdown]
-    
-    E --> F(assuntos_llm.py)
-    F -->|Localiza e isola o tópico| G[Assunto a Ser Estudado]
-    
-    G --> H(rewrite.py)
-    H -->|Prompt Eng. c/ Perfil do Estudante| I[Material Personalizado em Markdown]
-    
-    I --> J(gerador_pdf.py)
-    J -->|Renderização WeasyPrint + CSS Estilizado| K[(PDF Final Adaptado e Formatado com imagens)]
+    I(image_generator.py\nFormatação de prompts)
+    I -->|Material personalizado em Markdown| J
+
+    J(gerador_pdf.py\nWeasyPrint + CSS)
+    J --> K[(material_YYYYMMDD_HHMMSS.pdf)]
 ```
+
+---
+
+## 🚀 Como Executar
+
+### Pré-requisitos
+
+- Python 3.10+
+- [Homebrew](https://brew.sh/) com Pango e Cairo instalados (necessário para WeasyPrint no macOS):
+
+```bash
+brew install pango cairo libffi
+```
+
+### Instalação
+
+```bash
+# Clone o repositório
+git clone <url-do-repositorio>
+cd projeto_bkb
+
+# Crie e ative o ambiente virtual
+python -m venv .venv
+source .venv/bin/activate
+
+# Instale as dependências
+pip install pymupdf4llm google-generativeai python-dotenv markdown weasyprint
+```
+
+### Configuração
+
+Crie um arquivo `.env` na raiz do projeto com sua chave da API Gemini:
+
+```env
+GEMINI_API_KEY=sua_chave_aqui
+```
+
+> Obtenha sua chave em: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+
+### Uso
+
+1. Coloque o material da disciplina em PDF na raiz com o nome `disciplina.pdf`
+2. Execute o programa:
+
+```bash
+python main.py
+```
+
+3. Siga as instruções no terminal: responda o questionário, escolha o tópico e aguarde a geração do PDF personalizado em `materiais_gerados/`.
+
+---
+
+## 📚 Referências
+
+- Felder, R. M., & Silverman, L. K. (1988). *Learning and Teaching Styles in Engineering Education*.
+- Troussas, C. et al. (2020). *Adaptive Learning Rate Based on Entropy*. Entropy, MDPI.
+- Vaccaro, M. et al. (2025). *LLM-based Adaptive Content Generation*.
+- [pymupdf4llm](https://github.com/pymupdf/RAG) — Extração de PDF otimizada para LLMs
+- [WeasyPrint](https://weasyprint.org/) — Renderização HTML/CSS para PDF
+
+---
+
+## ⚠️ Observações e Envio ao GitHub
+
+- O arquivo `.env` **não deve ser versionado**. Para evitar vazamento de chaves de API, certifique-se de ter um arquivo `.gitignore` no projeto. O projeto foi atualizado com um arquivo pronto.
+- Os arquivos `.pdf` de origem e os conteúdos em `materiais_gerados/` e os arquivos temporários `.md` também são bloqueados pelo `.gitignore` para não lotar seu repositório.
+- Apenas o código base (`main.py`, pasta `modulos/` e a documentação `README.md`/`EXPLICACAO.md`) deve subir no seu repositório do GitHub.
+- O modelo Gemini é selecionado dinamicamente com base nos modelos disponíveis para a API key informada.
