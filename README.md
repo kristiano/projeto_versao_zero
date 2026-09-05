@@ -11,13 +11,14 @@ projeto_bkb/
 ├── main.py                          # Orquestrador do pipeline completo
 ├── .env                             # Variáveis de ambiente (API keys) — não versionar
 ├── disciplina.pdf                   # Material base em PDF — fornecido pelo usuário
+├── limpar_latex.py                  # Pós-processamento de segurança (LaTeX -> Unicode)
 └── modulos/
     ├── aluno/
     │   └── questionario.py          # Questionário ILS e mapeamento de dimensões
     ├── llm/
-    │   ├── gemini_config.py         # Configuração da SDK Gemini com retry automático
-    │   ├── assuntos_llm.py          # Identifica e extrai o tópico escolhido via LLM
-    │   └── rewrite.py               # Adapta o conteúdo ao perfil do aluno via LLM
+    │   ├── gemini_config.py         # Configuração com Fallback e Seleção Manual de Modelos
+    │   ├── rewrite.py               # Adapta o conteúdo ao perfil do aluno via LLM (com Chunking)
+    │   └── image_generator.py       # Formata sugestões de imagens para o perfil Visual
     └── pdf/
         ├── leitor_pdf.py            # Converte PDF → Markdown (pymupdf4llm)
         └── gerador_pdf.py           # Renderiza Markdown → PDF (WeasyPrint + CSS GitHub)
@@ -27,10 +28,10 @@ projeto_bkb/
 
 ## ⚙️ Como Funciona
 
-Ao executar `python main.py`, o pipeline percorre 5 etapas em sequência:
+Ao executar `python main.py`, o pipeline percorre as seguintes etapas:
 
-### 1. Questionário de Perfil (`modulos/aluno/questionario.py`)
-O aluno responde 4 perguntas do **Index of Learning Styles (ILS)**, que mapeiam as dimensões do modelo de Felder-Silverman:
+### 1. Seleção de Modelo e Questionário (`modulos/llm/gemini_config.py` e `aluno/questionario.py`)
+O sistema inicia permitindo a escolha manual do modelo Gemini disponível na sua conta (com fallback automático). Em seguida, o aluno responde ao questionário **ILS**, que mapeia as dimensões de Felder-Silverman:
 
 | Dimensão | Opção A | Opção B |
 |---|---|---|
@@ -39,24 +40,32 @@ O aluno responde 4 perguntas do **Index of Learning Styles (ILS)**, que mapeiam 
 | Entrada | Visual | Verbal |
 | Processamento | Ativo | Reflexivo |
 
-### 2. Leitura do PDF (`modulos/pdf/leitor_pdf.py`)
-O arquivo `disciplina.pdf` é processado via `pymupdf4llm`, convertendo todo o conteúdo textual para formato Markdown (`.md`). Imagens do PDF original não são embutidas — o foco é a fidelidade do texto para uso com LLMs.
+### 2. Conversão PDF para Markdown (`modulos/pdf/leitor_pdf.py`)
+O arquivo `disciplina.pdf` é processado via `pymupdf4llm`. O conteúdo é extraído de forma estruturada para Markdown, garantindo que tabelas e hierarquias sejam preservadas para melhor compreensão da IA.
 
-### 3. Identificação do Tópico (`modulos/llm/assuntos_llm.py`)
-Uma amostra do Markdown gerado é enviada ao Gemini, que sugere de 3 a 8 tópicos principais da disciplina. O aluno escolhe o tópico desejado (ou digita um tema livre). O sistema então extrai o trecho relevante do conteúdo usando as palavras-chave do tópico.
+### 3. Adaptação Pedagógica com Chunking (`modulos/llm/rewrite.py`)
+Diferente de abordagens simples, o sistema utiliza **Chunking de 8.000 caracteres**. O material integral é processado em blocos, onde cada bloco recebe o **Sumário Global** como contexto para evitar perda de coesão. A IA adapta o **tom, exemplos e estrutura** conforme o perfil ILS — mas nunca a substância do conteúdo original (ver [Regras de Fidelidade e Validação](#-regras-de-fidelidade-e-validação) abaixo).
 
-### 4. Adaptação Pedagógica (`modulos/llm/rewrite.py`)
-O trecho do tópico e o perfil do aluno são enviados ao Gemini com um prompt estruturado segundo as diretrizes do ILS:
-- **Sensorial/Intuitivo** → ênfase em exemplos práticos ou teoria conceitual
-- **Visual/Verbal** → tags para representações visuais ou explicações narrativas detalhadas
-- **Ativo/Reflexivo** → desafios práticos imediatos, ou perguntas instigantes para reflexão
-- **Sequencial/Global** → trilha linear passo a passo, ou visão macro antes dos detalhes
+### 4. Geração de Sugestões Visuais (`modulos/llm/image_generator.py`)
+Para perfis **Visuais**, a IA insere tags `[SUGESTAO_IMAGEM]`. Este módulo identifica essas tags e as transforma em blocos de citação formatados com prompts detalhados para geração manual em IAs geradoras de imagem.
 
-### 5. Geração de Prompts Visuais (`modulos/llm/image_generator.py`)
-Para alunos com perfil **Visual**, a IA gera blocos no formato `[SUGESTAO_IMAGEM: <prompt>]`. O módulo de imagens identifica essas ocorrências e formata um bloco de citação (Blockquote) Markdown. Esses prompts ficam visíveis no texto final para que o usuário possa gerar manualmente as imagens em ferramentas externas (como Midjourney ou DALL-E) com precisão.
+### 5. Limpeza de LaTeX (`limpar_latex.py`)
+Um passo de segurança que varre o material adaptado em busca de sintaxe LaTeX residual (como `$...$`), convertendo-a para caracteres **Unicode** (como ¬, ∧, ∨, →). Isso garante que o PDF final seja legível em qualquer leitor sem necessidade de bibliotecas matemáticas complexas.
 
-### 6. Geração do PDF (`modulos/pdf/gerador_pdf.py`)
-O material adaptado em Markdown é salvo na raiz e convertido para PDF via **WeasyPrint**, com tema visual inspirado no estilo do GitHub (tipografia limpa, tabelas, blocos de código e cabeçalho com o perfil do aluno).
+### 6. Geração do PDF Final (`modulos/pdf/gerador_pdf.py`)
+O material é renderizado via **WeasyPrint** usando um tema CSS inspirado no GitHub, produzindo um documento profissional com cabeçalho personalizado e tipografia otimizada.
+
+---
+
+## 🛡️ Regras de Fidelidade e Validação
+
+Ao testar o pipeline com material real, identificamos e corrigimos três classes de problema que podem surgir na resposta do modelo de IA. As regras abaixo estão implementadas no prompt de sistema e na validação automática de `modulos/llm/rewrite.py`:
+
+- **Fidelidade ao conteúdo original:** a IA adapta apenas a forma (tom, exemplos de apoio, estrutura) — nunca corrige, questiona ou substitui dados/exemplos/afirmações do material do professor, mesmo que perceba uma possível inconsistência. Isso preserva a rastreabilidade: um erro no PDF final deve ser atribuível à fonte, não a uma "correção" silenciosa da IA.
+- **Proibição de vazamento de raciocínio interno:** a resposta final deve conter apenas o texto já polido, nunca rascunhos, dúvidas ou autocorreções expostas (ex.: "Self-correction", "Wait,", "Okay, so") nem mistura de inglês em meio ao texto em português. Uma validação automática (`detectar_vazamento_raciocinio`) varre cada bloco gerado e regenera automaticamente qualquer bloco que contenha esses marcadores.
+- **Restrição de escopo das Leis de Equivalência:** ao justificar simplificações lógicas, a IA só pode citar leis explicitamente presentes no material do professor — nunca leis externas ao curso.
+
+Detalhes de quando e por que cada regra foi criada estão no [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -65,20 +74,25 @@ O material adaptado em Markdown é salvo na raiz e convertido para PDF via **Wea
 ```mermaid
 graph TD
     A[main.py] --> B(questionario.py\nQuestionário ILS)
-    B -->|4 dimensões do perfil| H
+    B -->|Perfil ILS| H
+
+    A --> C(gemini_config.py\nSeleção de Modelo)
+    C -->|Modelo Ativo| H
 
     A --> D(leitor_pdf.py\npymupdf4llm)
-    D -->|conteudo.md| F(assuntos_llm.py\nSugestão de tópicos via LLM)
-    F -->|Trecho do tópico escolhido| H
+    D -->|conteudo.md| H
 
-    H(rewrite.py\nAdaptação pedagógica via LLM)
-    H -->|Material adaptado com tags visuais| I
+    H(rewrite.py\nAdaptação com Chunking)
+    H -->|Markdown Adaptado| I
     
-    I(image_generator.py\nFormatação de prompts)
-    I -->|Material personalizado em Markdown| J
+    I(image_generator.py\nFormatação de Sugestões)
+    I -->|Markdown com Prompts| L
+
+    L(limpar_latex.py\nLimpeza Unicode)
+    L -->|Markdown Final| J
 
     J(gerador_pdf.py\nWeasyPrint + CSS)
-    J --> K[(material_YYYYMMDD_HHMMSS.pdf)]
+    J --> K[(material_final.pdf)]
 ```
 
 ---
@@ -148,3 +162,5 @@ python main.py
 - Os arquivos `.pdf` de origem e os conteúdos em `materiais_gerados/` e os arquivos temporários `.md` também são bloqueados pelo `.gitignore` para não lotar seu repositório.
 - Apenas o código base (`main.py`, pasta `modulos/` e a documentação `README.md`/`EXPLICACAO.md`) deve subir no seu repositório do GitHub.
 - O modelo Gemini é selecionado dinamicamente com base nos modelos disponíveis para a API key informada.
+- Existe um módulo legado `modulos/llm/assuntos_llm.py` (escolha de assunto pelo aluno) reservado para uma segunda versão do projeto — hoje o pipeline adapta o material integral da disciplina, sem essa escolha.
+- Para o histórico de correções de bugs e decisões de design, consulte o [CHANGELOG.md](CHANGELOG.md).

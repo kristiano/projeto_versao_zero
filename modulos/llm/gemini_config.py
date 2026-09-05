@@ -1,85 +1,110 @@
 # gemini_config.py
-# Configuração dinâmica do modelo Gemini
+# Configuração dinâmica do modelo Gemini com suporte a Fallback e Seleção Manual
 
 import os
-from dotenv import load_dotenv
-import warnings
-warnings.filterwarnings("ignore")
-import google.generativeai as genai
 import time
-from google.api_core.exceptions import ResourceExhausted
+import warnings
+from typing import Optional, List
+from dotenv import load_dotenv
+import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted, DeadlineExceeded
 
-class QuotaExceededError(Exception):
-    """Custom exception indicating Gemini API quota has been exceeded."""
-    pass
-
-_original_generate_content = genai.GenerativeModel.generate_content
-
-def _generate_content_with_retry(self, *args, **kwargs):
-    """Wrap generate_content with retry logic for quota limits.
-    Retries up to 3 times with incremental backoff. If quota is still exceeded,
-    raises QuotaExceededError with a helpful message.
-    """
-    max_attempts = 3
-    for attempt in range(max_attempts + 1):
-        try:
-            return _original_generate_content(self, *args, **kwargs)
-        except ResourceExhausted as e:
-            if attempt == max_attempts:
-                # After final attempt, raise custom error
-                raise QuotaExceededError(
-                    "Quota exceeded for Gemini API requests. "
-                    "Please check your plan or try again later."
-                ) from e
-            # incremental backoff: 15s, 30s, 45s
-            espera = (attempt + 1) * 15
-            print(f"\n[!] Limite de cota da API (ResourceExhausted) atingido. Aguardando {espera} segundos antes de tentar novamente (tentativa {attempt+1}/{max_attempts})...")
-            time.sleep(espera)
-
-genai.GenerativeModel.generate_content = _generate_content_with_retry
-
+warnings.filterwarnings("ignore")
 load_dotenv()
 
+class QuotaExceededError(Exception):
+    """Exceção personalizada para quando a cota do Gemini é esgotada em todos os modelos."""
+    pass
+
+class SmartModel:
+    """
+    Wrapper para o GenerativeModel que implementa fallback automático entre modelos.
+    Se um modelo falhar (por cota ou erro de token), tenta o próximo da lista.
+    """
+    def __init__(self, model_names: List[str], system_instruction: Optional[str] = None):
+        self.model_names = model_names
+        self.system_instruction = system_instruction
+        self.current_model_index = 0
+        self._instanciar_modelo()
+
+    def _instanciar_modelo(self):
+        nome = self.model_names[self.current_model_index]
+        print(f"[SmartModel] Ativando modelo: {nome.replace('models/', '')}")
+        
+        # Configuração de segurança para evitar bloqueios em conteúdos acadêmicos
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+
+        self.model = genai.GenerativeModel(
+            model_name=nome,
+            system_instruction=self.system_instruction,
+            safety_settings=safety_settings
+        )
+
+    def generate_content(self, *args, **kwargs):
+        max_retries_per_model = 2
+
+        # Se uma chamada anterior já esgotou todos os modelos, o índice fica
+        # além do fim da lista: sem esta guarda, o loop abaixo roda sobre um
+        # range vazio e a função cai no final retornando None silenciosamente.
+        if self.current_model_index >= len(self.model_names):
+            raise QuotaExceededError(
+                "Todos os modelos já falharam ou atingiram o limite de cota nesta execução. "
+                "Verifique sua chave de API ou tente novamente mais tarde."
+            )
+
+        for model_attempt in range(self.current_model_index, len(self.model_names)):
+            for retry_attempt in range(max_retries_per_model + 1):
+                try:
+                    return self.model.generate_content(*args, **kwargs)
+                
+                except (ResourceExhausted, DeadlineExceeded) as e:
+                    if retry_attempt < max_retries_per_model:
+                        espera = (retry_attempt + 1) * 10
+                        print(f"\n[!] Erro de limite ({type(e).__name__}) no modelo {self.model_names[self.current_model_index]}. "
+                              f"Aguardando {espera}s (tentativa {retry_attempt+1}/{max_retries_per_model})...")
+                        time.sleep(espera)
+                    else:
+                        print(f"\n[!] Limite persistente no modelo {self.model_names[self.current_model_index]}. Tentando fallback para o próximo modelo...")
+                        break # Tenta o próximo modelo da lista
+                
+                except Exception as e:
+                    print(f"\n[!] Erro inesperado no modelo {self.model_names[self.current_model_index]}: {e}")
+                    break # Tenta o próximo modelo
+
+            # Se chegou aqui, o modelo atual falhou. Muda para o próximo.
+            self.current_model_index += 1
+            if self.current_model_index < len(self.model_names):
+                self._instanciar_modelo()
+            else:
+                raise QuotaExceededError(
+                    "Todos os modelos falharam ou atingiram o limite de cota. "
+                    "Verifique sua chave de API ou tente novamente mais tarde."
+                )
 
 def get_api_key() -> str:
-    """
-    Obtém a API key do arquivo .env.
-    """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError(
-            "GEMINI_API_KEY não encontrada no arquivo .env. "
-            "Verifique se a chave está configurada corretamente."
-        )
+        raise ValueError("GEMINI_API_KEY não encontrada no arquivo .env.")
     return api_key
 
-
-from typing import Optional
-
-def criar_modelo(system_instruction: Optional[str] = None) -> genai.GenerativeModel:
+def criar_modelo(system_instruction: Optional[str] = None) -> SmartModel:
     """
-    Configura a SDK e retorna um modelo Gemini disponível para uso.
-    Descobre dinamicamente um modelo que suporte generateContent.
+    Configura a SDK e cria o modelo com fallback automático.
+    Usa gemini-2.5-flash como modelo padrão.
     """
     api_key = get_api_key()
     genai.configure(api_key=api_key)
 
-    modelos_disponiveis = []
-    for m in genai.list_models():
-        if "generateContent" in getattr(m, "supported_generation_methods", []):
-            modelos_disponiveis.append(m.name)
+    # Lista de modelos em ordem de preferência (fallback automático)
+    modelos_ordenados = [
+        "models/gemini-2.5-flash",
+        "models/gemini-2.5-pro",
+        "models/gemini-2.0-flash",
+    ]
 
-    if not modelos_disponiveis:
-        raise RuntimeError(
-            "Nenhum modelo com suporte a 'generateContent' foi encontrado "
-            "para esta API key. Verifique se sua conta tem acesso aos "
-            "modelos do Gemini."
-        )
-
-    nome_modelo = modelos_disponiveis[0]
-    print(f"Usando modelo: {nome_modelo}")
-
-    return genai.GenerativeModel(
-        model_name=nome_modelo,
-        system_instruction=system_instruction
-    )
+    return SmartModel(model_names=modelos_ordenados, system_instruction=system_instruction)
