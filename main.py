@@ -10,6 +10,8 @@ if sys.platform == 'darwin' and "/opt/homebrew/lib" not in os.environ.get("DYLD_
 from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
 from modulos.pdf.leitor_pdf import converter_pdf_para_md
 from modulos.llm.rewrite import adaptar_material
+from modulos.llm.gemini_config import ErroAutenticacaoAPI
+from modulos.llm.provedor_llm import perguntar_ordem_provedores
 from modulos.llm.image_generator import processar_imagens
 from modulos.pdf.gerador_pdf import gerar_pdf
 
@@ -33,7 +35,13 @@ if __name__ == "__main__":
     dimensoes = mapear_dimensoes(respostas)
     exibir_resultado(dimensoes)
 
+    # Etapa 1.1 - Escolha do provedor de IA (Gemini ou GLM-5.3 gratuito)
+    ordem_provedores = perguntar_ordem_provedores()
+
     # Etapa 2 - Leitura do PDF e extração do conteúdo para MD (via Python)
+    print("\n" + "="*60)
+    print("   ETAPA 2/4: LEITURA DO PDF")
+    print("="*60)
     caminho_md = converter_pdf_para_md(CAMINHO_PDF)
 
    
@@ -48,27 +56,31 @@ if __name__ == "__main__":
     # Etapa 2.1 - Carregar todo o conteúdo do PDF como um único assunto
     print("\nCarregando todo o conteúdo da disciplina (arquivo único)...")
     assunto_escolhido = "Conteúdo Integral da Disciplina"
-    
+
     with open(caminho_md, "r", encoding="utf-8") as arquivo:
         texto_assunto = arquivo.read()
 
-    # Salvar conteúdo integral em arquivo temporário/artefato 
-    # Salvando com outro nome para manter a compatibilidade com o resto do código
-    caminho_assunto_md = os.path.join(BASE_DIR, "assunto_selecionado.md")
-    with open(caminho_assunto_md, "w", encoding="utf-8") as f_md:
-        f_md.write(texto_assunto)
-    print(f"\nConteúdo integral carregado e salvo em: {caminho_assunto_md}")
-
     # Etapa 3 - Adaptação do material com base no contexto do assunto e perfil
-    print("\nAdaptando o material ao seu perfil de aprendizagem...")
-    material_adaptado = adaptar_material(
-        dimensoes=dimensoes,
-        assunto=assunto_escolhido,
-        texto=texto_assunto,
-    )
+    print("\n" + "="*60)
+    print("   ETAPA 3/4: ADAPTAÇÃO DO MATERIAL (pode levar alguns minutos)")
+    print("="*60)
+    try:
+        material_adaptado = adaptar_material(
+            dimensoes=dimensoes,
+            assunto=assunto_escolhido,
+            texto=texto_assunto,
+            ordem_provedores=ordem_provedores,
+        )
+    except ErroAutenticacaoAPI as e:
+        print("\n" + "="*60)
+        print("   ERRO: NÃO FOI POSSÍVEL ADAPTAR O MATERIAL")
+        print("="*60)
+        print(f"\nO material não pôde ser adaptado devido ao seguinte erro:\n\n  {e}\n")
+        raise SystemExit(1)
 
     # Etapa 3.1 - Geração Multimodal de Imagens APENAS para aprendizes visuais
     if dimensoes.get("entrada") == "Visual":
+        print("\nFormatando sugestões de imagem para perfil visual...")
         material_adaptado = processar_imagens(material_adaptado)
 
     # Etapa 3.2 - Pós-processamento de segurança (Limpeza de LaTeX residual)
@@ -77,6 +89,9 @@ if __name__ == "__main__":
     material_adaptado = processar_markdown(material_adaptado)
 
     # Etapa 4 - Gerar PDF do material final adaptado
+    print("\n" + "="*60)
+    print("   ETAPA 4/4: GERAÇÃO DO PDF FINAL")
+    print("="*60)
     caminho_pdf = gerar_pdf(
         material_adaptado=material_adaptado,
         assunto=assunto_escolhido,

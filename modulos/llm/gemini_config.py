@@ -2,19 +2,44 @@
 # Configuração dinâmica do modelo Gemini com suporte a Fallback e Seleção Manual
 
 import os
+import re
 import time
 import warnings
 from typing import Optional, List
 from dotenv import load_dotenv
 import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted, DeadlineExceeded
+from google.api_core.exceptions import (
+    ResourceExhausted, DeadlineExceeded, PermissionDenied, Unauthenticated, InvalidArgument,
+)
+
+from modulos.utils.progresso import acompanhar_progresso
 
 warnings.filterwarnings("ignore")
 load_dotenv()
 
+# Tempo máximo (em segundos) que uma única chamada ao Gemini pode ficar
+# aguardando resposta antes de ser considerada travada e abortada (o SDK
+# levanta DeadlineExceeded, que já é tratado pelo retry/fallback abaixo).
+TIMEOUT_SEGUNDOS = 90
+
 class QuotaExceededError(Exception):
     """Exceção personalizada para quando a cota do Gemini é esgotada em todos os modelos."""
     pass
+
+class ErroAutenticacaoAPI(Exception):
+    """Exceção para quando a GEMINI_API_KEY é inválida/expirada e o erro persiste após as tentativas."""
+    pass
+
+_PADRAO_ERRO_API_KEY = re.compile(r'api[_ -]?key|unauthenticated|permission[_ -]?denied', re.IGNORECASE)
+
+def _e_erro_de_api_key(e: Exception) -> bool:
+    """Identifica se o erro é relacionado à chave de API (inválida, revogada ou sem permissão),
+    e não a um problema temporário (cota, timeout) que faria sentido tentar outro modelo."""
+    if isinstance(e, (PermissionDenied, Unauthenticated)):
+        return True
+    if isinstance(e, InvalidArgument) and 'key' in str(e).lower():
+        return True
+    return bool(_PADRAO_ERRO_API_KEY.search(str(e)))
 
 class SmartModel:
     """
@@ -59,9 +84,15 @@ class SmartModel:
 
         for model_attempt in range(self.current_model_index, len(self.model_names)):
             for retry_attempt in range(max_retries_per_model + 1):
+                nome_modelo_atual = self.model_names[self.current_model_index].replace('models/', '')
                 try:
-                    return self.model.generate_content(*args, **kwargs)
-                
+                    with acompanhar_progresso(f"Aguardando resposta do Gemini ({nome_modelo_atual})"):
+                        return self.model.generate_content(
+                            *args,
+                            request_options={"timeout": TIMEOUT_SEGUNDOS},
+                            **kwargs,
+                        )
+
                 except (ResourceExhausted, DeadlineExceeded) as e:
                     if retry_attempt < max_retries_per_model:
                         espera = (retry_attempt + 1) * 10
@@ -73,6 +104,26 @@ class SmartModel:
                         break # Tenta o próximo modelo da lista
                 
                 except Exception as e:
+                    if _e_erro_de_api_key(e):
+                        # Erro de autenticação/chave inválida: trocar de modelo não ajuda,
+                        # pois a mesma GEMINI_API_KEY é usada em todos. Tentamos a mesma
+                        # chamada até 2 vezes no total e, se persistir, abortamos.
+                        max_tentativas_api_key = 2
+                        ultimo_erro = e
+                        for tentativa in range(2, max_tentativas_api_key + 1):
+                            print(f"\n[!] Erro de autenticação/chave de API detectado: {ultimo_erro}\n"
+                                  f"    Tentando novamente (tentativa {tentativa}/{max_tentativas_api_key})...")
+                            time.sleep(3)
+                            try:
+                                return self.model.generate_content(*args, **kwargs)
+                            except Exception as e2:
+                                ultimo_erro = e2
+                        raise ErroAutenticacaoAPI(
+                            f"Falha de autenticação com a API do Gemini após {max_tentativas_api_key} tentativas. "
+                            f"Verifique se a GEMINI_API_KEY no arquivo .env é válida e está ativa. "
+                            f"Erro original: {ultimo_erro}"
+                        ) from ultimo_erro
+
                     print(f"\n[!] Erro inesperado no modelo {self.model_names[self.current_model_index]}: {e}")
                     break # Tenta o próximo modelo
 

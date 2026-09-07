@@ -4,7 +4,8 @@
 
 import time
 import re
-from modulos.llm.gemini_config import criar_modelo, QuotaExceededError
+from modulos.llm.gemini_config import QuotaExceededError, ErroAutenticacaoAPI
+from modulos.llm.provedor_llm import criar_modelo_com_fallback
 
 
 # Padrões que indicam vazamento de raciocínio interno bruto do modelo
@@ -37,7 +38,7 @@ def detectar_vazamento_raciocinio(texto: str) -> list:
     return achados
 
 
-def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
+def adaptar_material(dimensoes: dict, assunto: str, texto: str, ordem_provedores=None) -> str:
     """
     Adapta o material didático ao perfil de aprendizagem do aluno.
     Divide o texto em blocos para garantir cobertura total e profundidade.
@@ -46,6 +47,8 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     dimensoes: dicionário com as 4 dimensões do Felder-Silverman
     assunto  : nome do capítulo/assunto escolhido pelo aluno
     texto    : conteúdo extraído do PDF
+    ordem_provedores: lista com a ordem de preferência dos provedores de IA
+                       (ex.: ["gemini", "glm"]). Se None, usa a ordem padrão.
 
     Retorna:
     material_adaptado: string com o material personalizado
@@ -148,10 +151,11 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     blocos = [texto[i : i + tamanho_bloco] for i in range(0, len(texto), tamanho_bloco)]
     
     material_total = []
-    model = criar_modelo(system_instruction=rewrite_sys_msg)
+    model = criar_modelo_com_fallback(system_instruction=rewrite_sys_msg, ordem_provedores=ordem_provedores)
 
     for i, bloco in enumerate(blocos):
-        print(f"Processando bloco {i+1}/{len(blocos)}...")
+        inicio_bloco = time.time()
+        print(f"\n[{i+1}/{len(blocos)}] Processando bloco {i+1} de {len(blocos)} ({len(bloco)} caracteres)...")
         
         contexto_bloco = (
             f"ESTE É O BLOCO {i+1} DE {len(blocos)}.\n"
@@ -197,18 +201,25 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
                         print(f"    -> Falha ao tentar regenerar o bloco {i+1}: {e}. Mantendo a versão original.")
 
                 material_total.append(texto_bloco_gerado)
+                print(f"[{i+1}/{len(blocos)}] Bloco {i+1} concluído em {(time.time() - inicio_bloco):.1f}s.")
 
             if len(blocos) > 1:
                 time.sleep(2) # Aumentado para 2s para evitar exaustão de cota
         except QuotaExceededError as e:
-            # Cota esgotada em todos os modelos: os blocos restantes falhariam
+            # Todos os provedores configurados falharam: os blocos restantes falhariam
             # da mesma forma, então paramos aqui em vez de desperdiçar tempo.
-            print(f"Erro ao processar bloco {i+1}: {e}")
+            print(f"[{i+1}/{len(blocos)}] Erro ao processar bloco {i+1}: {e}")
             material_total.append(f"\n[ERRO NA ADAPTAÇÃO: {e}]\n")
-            print(f"Interrompendo o processamento: cota esgotada, os {len(blocos) - i - 1} bloco(s) restante(s) não serão tentados.")
+            print(f"Interrompendo o processamento: todos os provedores falharam, "
+                  f"os {len(blocos) - i - 1} bloco(s) restante(s) não serão tentados.")
             break
+        except ErroAutenticacaoAPI:
+            # Erro de autenticação persistiu em todos os provedores configurados.
+            # Diferente da cota, aqui não faz sentido gerar um PDF parcial: o problema é
+            # a própria credencial, então propagamos para main.py abortar o programa.
+            raise
         except Exception as e:
-            print(f"Erro ao processar bloco {i+1}: {e}")
+            print(f"[{i+1}/{len(blocos)}] Erro ao processar bloco {i+1}: {e}")
             material_total.append(f"\n[ERRO NA ADAPTAÇÃO: {e}]\n")
 
     material_adaptado = "\n\n".join(material_total)

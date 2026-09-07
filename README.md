@@ -16,12 +16,16 @@ projeto_bkb/
     ├── aluno/
     │   └── questionario.py          # Questionário ILS e mapeamento de dimensões
     ├── llm/
-    │   ├── gemini_config.py         # Configuração com Fallback e Seleção Manual de Modelos
+    │   ├── gemini_config.py         # Configuração com Fallback e Seleção Manual de Modelos (Gemini)
+    │   ├── tokenrouter_config.py    # Cliente do GLM-5.3 gratuito via TokenRouter (com timeout)
+    │   ├── provedor_llm.py          # Orquestra o fallback entre provedores, na ordem escolhida pelo usuário
     │   ├── rewrite.py               # Adapta o conteúdo ao perfil do aluno via LLM (com Chunking)
     │   └── image_generator.py       # Formata sugestões de imagens para o perfil Visual
-    └── pdf/
-        ├── leitor_pdf.py            # Converte PDF → Markdown (pymupdf4llm)
-        └── gerador_pdf.py           # Renderiza Markdown → PDF (WeasyPrint + CSS GitHub)
+    ├── pdf/
+    │   ├── leitor_pdf.py            # Converte PDF → Markdown (pymupdf4llm)
+    │   └── gerador_pdf.py           # Renderiza Markdown → PDF (WeasyPrint + CSS GitHub)
+    └── utils/
+        └── progresso.py             # Heartbeat de progresso para chamadas bloqueantes (LLM)
 ```
 
 ---
@@ -120,7 +124,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Instale as dependências
-pip install pymupdf4llm google-generativeai python-dotenv markdown weasyprint
+pip install pymupdf4llm google-generativeai python-dotenv markdown weasyprint openai
 ```
 
 ### Configuração
@@ -129,9 +133,13 @@ Crie um arquivo `.env` na raiz do projeto com sua chave da API Gemini:
 
 ```env
 GEMINI_API_KEY=sua_chave_aqui
+TOKENROUTER_API_KEY=sua_chave_aqui
 ```
 
-> Obtenha sua chave em: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+> Obtenha a chave do Gemini em: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+> Obtenha a chave do TokenRouter em: [https://www.tokenrouter.com](https://www.tokenrouter.com)
+
+**`TOKENROUTER_API_KEY` é opcional**, mas recomendada. Ao rodar `main.py`, o sistema pergunta **qual provedor tentar primeiro** (Gemini ou GLM-5.3). Se o provedor escolhido falhar por qualquer motivo (cota, autenticação, timeout, erro de rede), o sistema tenta automaticamente o outro antes de desistir. Cada chamada tem um **timeout de 90s** — se um provedor não responder nesse prazo, o sistema não fica travado esperando: registra a falha e segue para o próximo provedor (ou para o próximo bloco). Sem `TOKENROUTER_API_KEY`, apenas o Gemini fica disponível.
 
 ### Uso
 
