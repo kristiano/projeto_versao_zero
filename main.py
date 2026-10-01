@@ -9,13 +9,47 @@ if sys.platform == 'darwin' and "/opt/homebrew/lib" not in os.environ.get("DYLD_
 # main.py
 from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
 from modulos.pdf.leitor_pdf import converter_pdf_para_md
-from modulos.llm.rewrite import adaptar_material
+from modulos.llm.rewrite import adaptar_material, dividir_em_blocos
 from modulos.llm.gemini_config import ErroAutenticacaoAPI
 from modulos.llm.image_generator import processar_imagens
 from modulos.pdf.gerador_pdf import gerar_pdf
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CAMINHO_PDF = os.path.join(BASE_DIR, "disciplina.pdf")
+
+# Mínimo de texto extraído para considerar que o PDF é adaptável. Abaixo disso,
+# provavelmente é um PDF só de imagens sem OCR possível, protegido ou corrompido.
+MIN_CARACTERES_UTEIS = 200
+
+
+def localizar_pdf_base() -> str:
+    """
+    Localiza o PDF do material a ser adaptado. Prioriza 'disciplina.pdf'; se não
+    existir, aceita qualquer PDF único na raiz do projeto (permitindo que o
+    usuário apenas solte o arquivo na pasta, com qualquer nome).
+    Retorna "" se não houver um PDF claramente identificável.
+    """
+    caminho_padrao = os.path.join(BASE_DIR, "disciplina.pdf")
+    if os.path.exists(caminho_padrao):
+        return caminho_padrao
+
+    pdfs = sorted(
+        os.path.join(BASE_DIR, nome)
+        for nome in os.listdir(BASE_DIR)
+        if nome.lower().endswith(".pdf")
+    )
+
+    if len(pdfs) == 1:
+        return pdfs[0]
+
+    if len(pdfs) > 1:
+        print("\nForam encontrados vários PDFs na pasta do projeto:")
+        for caminho in pdfs:
+            print(f"   - {os.path.basename(caminho)}")
+        print("\nRenomeie o material desejado para 'disciplina.pdf' "
+              "(ou deixe apenas um PDF na pasta) e execute novamente.")
+
+    return ""
+
 
 if __name__ == "__main__":
 
@@ -23,10 +57,13 @@ if __name__ == "__main__":
     print("   SISTEMA DE PERSONALIZAÇÃO DE MATERIAIS DIDÁTICOS")
     print("="*60)
 
-    if not os.path.exists(CAMINHO_PDF):
-        print("\nO ARQUIVO 'disciplina.pdf' NÃO FOI ENCONTRADO NA PASTA! Por favor, adicione o arquivo base.")
+    CAMINHO_PDF = localizar_pdf_base()
+    if not CAMINHO_PDF:
+        if not any(n.lower().endswith(".pdf") for n in os.listdir(BASE_DIR)):
+            print("\nNENHUM PDF ENCONTRADO NA PASTA DO PROJETO!")
+            print("Adicione o material da disciplina em PDF (de preferência como 'disciplina.pdf').")
         raise SystemExit(0)
-    
+
     print(f"\nPDF base detectado: {os.path.basename(CAMINHO_PDF)}")
 
     # Etapa 1 - Questionário
@@ -55,6 +92,28 @@ if __name__ == "__main__":
 
     with open(caminho_md, "r", encoding="utf-8") as arquivo:
         texto_assunto = arquivo.read()
+
+    # Validação: PDFs só de imagem (sem OCR possível), protegidos ou corrompidos
+    # geram pouco ou nenhum texto — adaptar isso produziria um material vazio.
+    if len(texto_assunto.strip()) < MIN_CARACTERES_UTEIS:
+        print("\n" + "="*60)
+        print("   ERRO: NÃO FOI POSSÍVEL EXTRAIR TEXTO DO PDF")
+        print("="*60)
+        print(f"\nForam extraídos apenas {len(texto_assunto.strip())} caracteres de "
+              f"'{os.path.basename(CAMINHO_PDF)}' — insuficiente para adaptar.")
+        print("\nCausas comuns:")
+        print("   - O PDF contém apenas imagens/digitalizações sem texto reconhecível")
+        print("   - O PDF está protegido contra extração de conteúdo")
+        print("   - O arquivo está corrompido")
+        print("\nTente um PDF com texto selecionável, ou passe o arquivo por um OCR antes.\n")
+        raise SystemExit(1)
+
+    total_blocos = len(dividir_em_blocos(texto_assunto))
+    print(f"   Conteúdo extraído: {len(texto_assunto)} caracteres")
+    print(f"   Será adaptado em {total_blocos} bloco(s) — cada bloco é uma chamada à IA.")
+    if total_blocos > 15:
+        print(f"\n   AVISO: material extenso ({total_blocos} blocos). Isso pode levar bastante")
+        print("   tempo e consumir boa parte da cota da sua API key.")
 
     # Etapa 3 - Adaptação do material com base no contexto do assunto e perfil
     print("\n" + "="*60)

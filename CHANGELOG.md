@@ -2,6 +2,40 @@
 
 Registro das alterações feitas no projeto, mais recentes primeiro.
 
+## 2026-10-01 (3)
+
+Objetivo: garantir que o sistema adapte **qualquer material inserido**, de qualquer disciplina, de forma robusta.
+
+### Corrigido — prompt estava amarrado à disciplina de Lógica Matemática
+
+O prompt de sistema continha conteúdo específico da disciplina usada nos testes, hardcoded num sistema que deveria ser genérico. Para um material de História ou Química, essas instruções eram ruído que desperdiçava tokens e podia contaminar a adaptação:
+
+- **`modulos/llm/rewrite.py`** — a seção "RESTRIÇÃO DE ESCOPO — LEIS DE EQUIVALÊNCIA" (que listava Idempotência, De Morgan, Dominação etc.) foi generalizada para "NÃO INTRODUZA CONTEÚDO EXTERNO AO MATERIAL": a IA não pode citar nenhuma lei, teorema, princípio, método, autor, norma ou classificação que não esteja no material do professor — regra que protege igualmente qualquer disciplina.
+- **`modulos/llm/rewrite.py`** — "Regras de Rigor e Humanização" não fala mais em "premissas" e exemplos de lógica (`$P \to Q$`, `$\therefore$`); agora cobre notação técnica de qualquer área (matemática, lógica, química, física, estatística, direito).
+- **`modulos/llm/rewrite.py`** — a lista de símbolos Unicode permitidos foi expandida além da lógica, cobrindo matemática, química/física e alfabeto grego (ex.: H₂O, Fe²⁺, ∑, ⇌, 25 °C).
+
+### Corrigido — chunking cortava frases e tabelas no meio
+
+- **`modulos/llm/rewrite.py`** — nova função `dividir_em_blocos()` substitui o corte bruto por índice (`texto[i:i+8000]`). Agora a divisão respeita fronteiras de parágrafo (linha em branco) e, para parágrafos maiores que o limite, quebra em fim de linha — evitando partir frases, listas e linhas de tabela. Testado com tabelas longas, parágrafo único gigante, texto curto e vazio: nenhuma perda de conteúdo e limite sempre respeitado. (Isso também alinha o código ao que o `Pre-Readme.md` já descrevia.)
+
+### Adicionado — robustez de entrada
+
+- **`main.py`** — `localizar_pdf_base()`: o sistema não exige mais o nome exato `disciplina.pdf`. Prioriza esse nome, mas aceita qualquer PDF único na pasta (qualquer nome, extensão maiúscula inclusive). Com vários PDFs e nenhum chamado `disciplina.pdf`, lista os arquivos e pede desambiguação em vez de falhar com mensagem genérica.
+- **`main.py`** — validação do conteúdo extraído: se o PDF render menos de 200 caracteres úteis (PDF só de imagens sem OCR possível, protegido ou corrompido), o programa aborta com diagnóstico das causas prováveis em vez de enviar blocos vazios à IA e gerar um material inútil.
+- **`main.py`** — antes de iniciar a adaptação, informa quantos caracteres foram extraídos e em quantos blocos o material será dividido (cada bloco = 1 chamada à IA). Acima de 15 blocos, avisa que a execução será longa e consumirá boa parte da cota.
+- **`modulos/llm/rewrite.py`** — materiais sem estrutura de títulos (PDFs escaneados, textos corridos) não geravam sumário, deixando uma seção vazia no prompt. Agora a IA recebe uma nota explícita para se apoiar apenas no texto do bloco.
+- **`modulos/llm/rewrite.py`** — `TAMANHO_BLOCO` virou constante de módulo, usada pelo `main.py` para estimar os blocos sem duplicar o número.
+
+## 2026-10-01 (2)
+
+### Corrigido — desperdício de tokens por expansão forçada
+
+Teste real revelou que um bloco de entrada de só 75 caracteres gerava 25.722 caracteres de saída (~340x de expansão) e levava mais de 2 minutos. Causa raiz: a seção "Requisitos de Conteúdo e Profundidade" do prompt de sistema ([modulos/llm/rewrite.py](modulos/llm/rewrite.py)) exigia uma lista fixa de tópicos (Tabelas-Verdade, Leis de De Morgan, Lógica de Predicados, Regras de Inferência etc.) em **todo bloco**, independentemente do que aquele bloco realmente contivesse. Essa lista também era **específica da disciplina de Lógica Matemática** usada nos testes — hardcoded num prompt que deveria ser genérico para qualquer disciplina.
+
+- **`modulos/llm/rewrite.py`** — substituída a lista fixa de tópicos por uma regra de escopo estrito: a profundidade da resposta deve ser proporcional ao que está realmente no bloco, proibindo expressamente "conteúdo de preenchimento" sobre tópicos não presentes no texto original.
+- **`modulos/llm/rewrite.py`** — a instrução "ADICIONE A SEÇÃO DE EXERCÍCIOS AO FINAL" (injetada incondicionalmente no último bloco) agora só é enviada condicionada a "se e somente se o material original já contiver exercícios" — antes, isso incentivava a IA a inventar exercícios do zero sobre qualquer tópico.
+- **`modulos/llm/rewrite.py`** — a instrução "ADICIONE A VISÃO PANORÂMICA GLOBAL" (injetada incondicionalmente no primeiro bloco) agora só é enviada quando o perfil do aluno é realmente `Global` na dimensão de Compreensão — antes, era enviada para todo aluno, mesmo os `Sequencial`.
+
 ## 2026-10-01
 
 ### Removido

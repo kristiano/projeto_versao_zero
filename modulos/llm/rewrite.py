@@ -37,6 +37,55 @@ def detectar_vazamento_raciocinio(texto: str) -> list:
     return achados
 
 
+# Tamanho máximo de cada bloco enviado à IA. Exportado para que o main.py possa
+# estimar quantos blocos um material vai gerar antes de iniciar a adaptação.
+TAMANHO_BLOCO = 8000
+
+
+def dividir_em_blocos(texto: str, tamanho_maximo: int = TAMANHO_BLOCO) -> list:
+    """
+    Divide o texto em blocos de até `tamanho_maximo` caracteres, quebrando
+    preferencialmente em fronteiras de parágrafo (linha em branco) para não
+    cortar frases, listas ou tabelas no meio — o que degradaria a adaptação.
+
+    Parágrafos maiores que o limite são quebrados por linha e, em último caso,
+    por tamanho bruto.
+    """
+    if not texto.strip():
+        return []
+
+    pedacos = re.split(r'(\n\s*\n)', texto)
+    blocos = []
+    atual = ""
+
+    for pedaco in pedacos:
+        if not pedaco:
+            continue
+
+        if len(atual) + len(pedaco) <= tamanho_maximo:
+            atual += pedaco
+            continue
+
+        if atual.strip():
+            blocos.append(atual)
+            atual = ""
+
+        # Pedaço isolado maior que o limite: quebra por linha, depois por tamanho bruto
+        while len(pedaco) > tamanho_maximo:
+            corte = pedaco.rfind("\n", 0, tamanho_maximo)
+            if corte <= 0:
+                corte = tamanho_maximo
+            blocos.append(pedaco[:corte])
+            pedaco = pedaco[corte:]
+
+        atual = pedaco
+
+    if atual.strip():
+        blocos.append(atual)
+
+    return blocos
+
+
 def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     """
     Adapta o material didático ao perfil de aprendizagem do aluno.
@@ -54,9 +103,15 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     print("\n***\nInicializando Rewrite com Chunking:")
     start_time = time.time()
 
-    # Extrair sumário de tópicos para dar contexto global a todos os blocos
+    # Extrair sumário de tópicos para dar contexto global a todos os blocos.
+    # Materiais sem estrutura de títulos (ex.: PDFs escaneados) não geram sumário:
+    # nesse caso, avisamos a IA para se apoiar apenas no texto do próprio bloco.
     headers = re.findall(r'^#+\s+(.*)', texto, re.MULTILINE)
-    sumario = "\n".join([f"- {h}" for h in headers])
+    if headers:
+        sumario = "\n".join([f"- {h}" for h in headers])
+    else:
+        sumario = ("(Este material não possui estrutura de títulos detectável. Não há sumário "
+                   "disponível: use exclusivamente o texto do bloco como referência de contexto.)")
 
     # System message do Rewrite
     rewrite_sys_msg = (
@@ -90,21 +145,25 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
         "   - Se **Sequencial**: Trilha linear, passo a passo, progresso lógico.\n"
         "   - Se **Global**: Comece com a 'Visão Panorâmica' (Big Picture) APENAS no primeiro bloco. Mostre como o conceito se conecta ao todo.\n\n"
         "## Regras de Rigor e Humanização (OBRIGATÓRIO)\n"
-        "1. **PROIBIÇÃO DE SÍMBOLOS ISOLADOS:** Nunca apresente uma fórmula ou premissa (ex: $P \\to Q$) sem antes explicá-la em português claro. "
-        "O aluno deve ser capaz de ler o material como se fosse um livro de narrativa, ignorando os símbolos se desejar.\n"
-        "2. **TRADUÇÃO DE PREMISSAS:** Se o original tiver uma lista de premissas, você deve adaptá-la para frases fluidas. "
-        "Exemplo: em vez de '1. $P \\to Q$', use '1. Primeiro, temos a premissa de que se P ocorrer, então Q também ocorre (representado por $P \\to Q$).'\n"
-        "3. **VOCABULÁRIO DIDÁTICO:** Use termos como 'Portanto', 'Concluímos que', 'Se... então', 'Ou', 'Não'. "
-        "Nunca deixe o símbolo '$\\therefore$' ou '$\\neg$' sem a tradução verbal ao lado.\n\n"
-        "## Requisitos de Conteúdo e Profundidade\n"
-        "O material adaptado deve ser profundo e cobrir:\n"
-        "- Definição e Tabelas-Verdade completas.\n"
-        "- Negação de proposições compostas (Leis de De Morgan).\n"
-        "- Tautologia, Contradição e Contingência.\n"
-        "- Leis de Equivalência e Simplificação de Expressões.\n"
-        "- Regras de Inferência.\n"
-        "- Lógica de Predicados (Quantificadores).\n"
-        "- **SEÇÃO DE EXERCÍCIOS:** Se for o último bloco, inclua uma lista de exercícios variados.\n\n"
+        "1. **NENHUMA NOTAÇÃO SEM EXPLICAÇÃO:** Nunca apresente uma fórmula, equação, símbolo, sigla ou "
+        "notação técnica — de qualquer área (matemática, lógica, química, física, estatística, direito, "
+        "etc.) — sem antes explicá-la em português claro. O aluno deve conseguir ler o material como um "
+        "livro de narrativa, entendendo o conteúdo mesmo que ignore completamente os símbolos.\n"
+        "2. **TRADUÇÃO DE EXPRESSÕES FORMAIS:** Transforme listas de itens formais (premissas, equações, "
+        "reações, passos de demonstração, artigos de norma) em frases fluidas que digam em palavras o que "
+        "a expressão afirma, mantendo a expressão original ao lado como apoio visual.\n"
+        "3. **VOCABULÁRIO DIDÁTICO:** Use conectivos explícitos ('Portanto', 'Concluímos que', 'Isso "
+        "significa que', 'Por outro lado') em vez de deixar relações importantes implícitas em símbolos.\n\n"
+        "## Requisitos de Profundidade (ESCOPO ESTRITO: APENAS O QUE ESTÁ NESTE BLOCO)\n"
+        "- A profundidade da adaptação deve ser PROPORCIONAL ao que está realmente presente no texto "
+        "original deste bloco — não é permitido expandir com tópicos, definições, exemplos ou exercícios "
+        "que não estejam no texto original fornecido.\n"
+        "- Se o bloco for curto ou tratar de poucos conceitos, a resposta deve ser igualmente concisa. "
+        "Gerar conteúdo de 'preenchimento' sobre assuntos não pedidos desperdiça tokens e tempo de "
+        "geração — isso é PROIBIDO.\n"
+        "- **SEÇÃO DE EXERCÍCIOS:** inclua apenas se este for o último bloco E o material original já "
+        "contiver exercícios/questões — nesse caso, adapte-os ao perfil do aluno. NÃO invente exercícios "
+        "do zero sobre tópicos que não constam no material.\n\n"
         "## REGRA DE OURO — APENAS RESPOSTA FINAL (PROIBIDO EXPOR RACIOCÍNIO)\n"
         "- Você pode pensar internamente quanto precisar, mas a resposta que você DEVOLVE deve conter **apenas o "
         "texto final, já revisado e polido** — como se tivesse sido escrito de primeira, sem erros.\n"
@@ -121,31 +180,35 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
         "substitua exemplos do material por sua própria conta — isso descaracteriza o material do professor e "
         "dificulta o rastreio de erros na fonte original. Apenas apresente o conteúdo original com clareza "
         "didática, sem alterar seu conteúdo factual.\n\n"
-        "## RESTRIÇÃO DE ESCOPO — LEIS DE EQUIVALÊNCIA\n"
-        "- Ao justificar uma simplificação lógica citando o nome de uma lei (ex.: 'pela Lei de Idempotência'), "
-        "use **exclusivamente** leis que estejam explicitamente no Sumário/conteúdo original fornecido a você — "
-        "tipicamente: Identidade, Dominação, Idempotência, Dupla Negação, Comutatividade, Associatividade, "
-        "Distributiva, De Morgan, Tautologia/Contradição Trivial (e as leis de equivalência de predicados, se "
-        "presentes no material).\n"
-        "- **NUNCA** introduza ou nomeie leis que não constem no material do professor (ex.: Lei de Absorção, "
-        "Lei de Consenso, etc.), mesmo que sejam logicamente válidas na literatura em geral. Se o passo de "
-        "simplificação corresponder a uma lei fora dessa lista, decomponha-o em passos usando apenas as leis "
-        "listadas, ou apenas apresente o resultado sem atribuir um nome de lei.\n\n"
+        "## RESTRIÇÃO DE ESCOPO — NÃO INTRODUZA CONTEÚDO EXTERNO AO MATERIAL\n"
+        "- Ao justificar um passo ou citar o nome de uma lei, teorema, regra, princípio, método, autor, "
+        "norma ou classificação, use **exclusivamente** o que estiver explicitamente presente no material "
+        "do professor (neste bloco ou no Sumário acima). Isso vale para qualquer disciplina.\n"
+        "- **NUNCA** introduza nomes de leis/teoremas/princípios/autores que não constem no material, mesmo "
+        "que sejam corretos e consagrados na literatura da área. Se um passo corresponder a um conceito que "
+        "o material não nomeia, descreva o raciocínio em palavras ou apresente apenas o resultado, sem "
+        "atribuir um nome que o aluno não viu em aula.\n"
+        "- Motivo: o material adaptado precisa ficar alinhado ao recorte exato da ementa do professor. "
+        "Introduzir conteúdo externo confunde o aluno e sugere uma cobrança que não existe na disciplina.\n\n"
         "## Formato de Saída\n"
         "Markdown estruturado.\n\n"
         "### REGRA DE OURO — PROIBIÇÃO TOTAL DE LaTeX\n"
-        "- **NUNCA** use a sintaxe `$...$` ou `$$...$$` (delimitadores LaTeX). O material será renderizado em PDF simples que NÃO interpreta LaTeX.\n"
-        "- Use EXCLUSIVAMENTE caracteres Unicode para símbolos lógicos/matemáticos:\n"
-        "  ¬ (negação), ∧ (conjunção/e), ∨ (disjunção/ou), ⊕ (ou-exclusivo), → (implicação), ↔ (bicondicional), "
-        "∴ (portanto), ∀ (para todo), ∃ (existe), ≡ (equivalente), ≠ (diferente), ≤, ≥, × , ∈, ∉, ⊂, ⊆, ∪, ∩, ∅\n"
-        "- Escreva variáveis como texto simples: P, Q, R, P₁, P₂ (use subscrito Unicode ₁₂₃ quando possível, ou _1 _2 como fallback).\n"
-        "- O texto deve ser totalmente compreensível para humanos que não conhecem códigos lógicos. "
-        "Símbolos Unicode devem servir apenas como apoio visual secundário entre parênteses ou em blocos explicados."
+        "- **NUNCA** use a sintaxe `$...$` ou `$$...$$` (delimitadores LaTeX), nem comandos como `\\frac`, "
+        "`\\neg`, `\\alpha`, `\\rightarrow`. O material será renderizado em PDF simples que NÃO interpreta LaTeX.\n"
+        "- Use EXCLUSIVAMENTE caracteres Unicode para qualquer notação técnica que o material exigir. Exemplos:\n"
+        "  - Lógica e conjuntos: ¬ ∧ ∨ ⊕ → ↔ ∴ ∀ ∃ ≡ ∈ ∉ ⊂ ⊆ ∪ ∩ ∅\n"
+        "  - Matemática: ≠ ≤ ≥ × ÷ ± √ ∑ ∏ ∫ ∞ π Δ ° ¹ ² ³ ₁ ₂ ₃\n"
+        "  - Química e física: → ⇌ ° Å µ Ω (ex.: H₂O, CO₂, Fe²⁺, 25 °C)\n"
+        "  - Alfabeto grego: α β γ δ θ λ μ σ φ ω\n"
+        "- Escreva variáveis e índices como texto simples, usando subscrito/expoente Unicode quando possível "
+        "(P₁, x₂, Fe²⁺), ou underscore como fallback (P_1).\n"
+        "- O texto deve ser totalmente compreensível para quem não domina a notação da área. "
+        "Símbolos Unicode devem servir apenas como apoio visual secundário, sempre acompanhados da "
+        "explicação em palavras."
     )
 
-    # Reduzimos o tamanho do bloco para garantir maior estabilidade e evitar respostas vazias
-    tamanho_bloco = 8000
-    blocos = [texto[i : i + tamanho_bloco] for i in range(0, len(texto), tamanho_bloco)]
+    # Blocos de até TAMANHO_BLOCO caracteres, respeitando fronteiras de parágrafo
+    blocos = dividir_em_blocos(texto)
     
     material_total = []
     model = criar_modelo(system_instruction=rewrite_sys_msg)
@@ -157,8 +220,8 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
         contexto_bloco = (
             f"ESTE É O BLOCO {i+1} DE {len(blocos)}.\n"
             "FOCO: Adapte o texto abaixo com profundidade, ignorando o que não estiver nele, mas mantendo a coesão com o sumário.\n"
-            f"{'ADICIONE A VISÃO PANORÂMICA GLOBAL AQUI.' if i == 0 else ''}\n"
-            f"{'ADICIONE A SEÇÃO DE EXERCÍCIOS AO FINAL.' if i == len(blocos)-1 else ''}\n\n"
+            f"{'ADICIONE A VISÃO PANORÂMICA GLOBAL AQUI.' if i == 0 and dimensoes.get('compreensao') == 'Global' else ''}\n"
+            f"{'SE E SOMENTE SE O TEXTO ORIGINAL ABAIXO JÁ CONTIVER EXERCÍCIOS/QUESTÕES, ADAPTE-OS AO FINAL (NÃO invente exercícios novos sobre tópicos fora deste bloco).' if i == len(blocos)-1 else ''}\n\n"
             f"TEXTO ORIGINAL PARA ADAPTAR:\n{bloco}"
         )
 

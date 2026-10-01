@@ -151,11 +151,14 @@ def criar_modelo(system_instruction: Optional[str] = None) -> SmartModel:
     api_key = get_api_key()
     genai.configure(api_key=api_key)
 
-    # Lista de modelos em ordem de preferência (fallback automático)
+    # Lista de modelos em ordem de preferência (fallback automático).
+    # "gemini-2.5-pro" e "gemini-2.0-flash" foram descontinuados pela Google
+    # (retornam 404 "no longer available") e foram substituídos por modelos
+    # atuais, confirmados funcionais via teste real em 2026-10-01.
     modelos_ordenados = [
         "models/gemini-2.5-flash",
-        "models/gemini-2.5-pro",
-        "models/gemini-2.0-flash",
+        "models/gemini-3.8-flash",
+        "models/gemini-3.1-flash-lite",
     ]
 
     return SmartModel(model_names=modelos_ordenados, system_instruction=system_instruction)

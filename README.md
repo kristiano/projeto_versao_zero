@@ -43,10 +43,14 @@ O sistema inicia permitindo a escolha manual do modelo Gemini disponível na sua
 | Processamento | Ativo | Reflexivo |
 
 ### 2. Conversão PDF para Markdown (`modulos/pdf/leitor_pdf.py`)
-O arquivo `disciplina.pdf` é processado via `pymupdf4llm`. O conteúdo é extraído de forma estruturada para Markdown, garantindo que tabelas e hierarquias sejam preservadas para melhor compreensão da IA.
+O PDF do material é processado via `pymupdf4llm`. O conteúdo é extraído de forma estruturada para Markdown, garantindo que tabelas e hierarquias sejam preservadas para melhor compreensão da IA.
+
+O sistema prioriza o nome `disciplina.pdf`, mas aceita **qualquer PDF único** na pasta do projeto (com qualquer nome). Se o PDF não render texto suficiente — por ser apenas digitalizações sem OCR possível, estar protegido ou corrompido — o programa aborta com um diagnóstico claro, em vez de gerar um material vazio.
 
 ### 3. Adaptação Pedagógica com Chunking (`modulos/llm/rewrite.py`)
-Diferente de abordagens simples, o sistema utiliza **Chunking de 8.000 caracteres**. O material integral é processado em blocos, onde cada bloco recebe o **Sumário Global** como contexto para evitar perda de coesão. A IA adapta o **tom, exemplos e estrutura** conforme o perfil ILS — mas nunca a substância do conteúdo original (ver [Regras de Fidelidade e Validação](#-regras-de-fidelidade-e-validação) abaixo).
+O material integral é processado em blocos de até **8.000 caracteres**, divididos respeitando fronteiras de parágrafo (para não cortar frases, listas ou tabelas no meio). Cada bloco recebe o **Sumário Global** como contexto para evitar perda de coesão. A IA adapta o **tom, exemplos e estrutura** conforme o perfil ILS — mas nunca a substância do conteúdo original (ver [Regras de Fidelidade e Validação](#-regras-de-fidelidade-e-validação) abaixo).
+
+O prompt é **independente de disciplina**: funciona igualmente para Lógica, História, Química, Direito etc., sem conteúdo específico de uma área embutido.
 
 ### 4. Geração de Sugestões Visuais (`modulos/llm/image_generator.py`)
 Para perfis **Visuais**, a IA insere tags `[SUGESTAO_IMAGEM]`. Este módulo identifica essas tags e as transforma em blocos de citação formatados com prompts detalhados para geração manual em IAs geradoras de imagem.
@@ -61,11 +65,12 @@ O material é renderizado via **WeasyPrint** usando um tema CSS inspirado no Git
 
 ## 🛡️ Regras de Fidelidade e Validação
 
-Ao testar o pipeline com material real, identificamos e corrigimos três classes de problema que podem surgir na resposta do modelo de IA. As regras abaixo estão implementadas no prompt de sistema e na validação automática de `modulos/llm/rewrite.py`:
+Ao testar o pipeline com material real, identificamos e corrigimos classes de problema que podem surgir na resposta do modelo de IA. As regras abaixo estão implementadas no prompt de sistema e na validação automática de `modulos/llm/rewrite.py`, e valem para **qualquer disciplina**:
 
 - **Fidelidade ao conteúdo original:** a IA adapta apenas a forma (tom, exemplos de apoio, estrutura) — nunca corrige, questiona ou substitui dados/exemplos/afirmações do material do professor, mesmo que perceba uma possível inconsistência. Isso preserva a rastreabilidade: um erro no PDF final deve ser atribuível à fonte, não a uma "correção" silenciosa da IA.
-- **Proibição de vazamento de raciocínio interno:** a resposta final deve conter apenas o texto já polido, nunca rascunhos, dúvidas ou autocorreções expostas (ex.: "Self-correction", "Wait,", "Okay, so") nem mistura de inglês em meio ao texto em português. Uma validação automática (`detectar_vazamento_raciocinio`) varre cada bloco gerado e regenera automaticamente qualquer bloco que contenha esses marcadores.
-- **Restrição de escopo das Leis de Equivalência:** ao justificar simplificações lógicas, a IA só pode citar leis explicitamente presentes no material do professor — nunca leis externas ao curso.
+- **Proibição de vazamento de raciocínio interno:** a resposta final deve conter apenas o texto já polido, nunca rascunhos, dúvidas ou autocorreções expostas (ex.: "Self-correction", "Wait,", "Okay, so") nem mistura de inglês em meio ao texto em português. Uma validação automática (`detectar_vazamento_raciocinio`) varre cada bloco gerado e, ao detectar um vazamento, reescreve **apenas o trecho afetado** (sem regenerar o bloco inteiro).
+- **Nenhum conteúdo externo ao material:** a IA não pode citar leis, teoremas, princípios, métodos, autores, normas ou classificações que não estejam no material do professor — mesmo que corretos na literatura da área. Isso mantém o material alinhado ao recorte exato da ementa.
+- **Profundidade proporcional ao bloco:** a extensão da resposta acompanha o que está realmente no trecho original. É proibido gerar conteúdo de "preenchimento" sobre tópicos ausentes — o que antes inflava o material e desperdiçava tokens.
 
 Detalhes de quando e por que cada regra foi criada estão no [CHANGELOG.md](CHANGELOG.md).
 
