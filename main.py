@@ -11,7 +11,6 @@ from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, e
 from modulos.pdf.leitor_pdf import converter_pdf_para_md
 from modulos.llm.rewrite import adaptar_material
 from modulos.llm.gemini_config import ErroAutenticacaoAPI
-from modulos.llm.provedor_llm import perguntar_ordem_provedores
 from modulos.llm.image_generator import processar_imagens
 from modulos.pdf.gerador_pdf import gerar_pdf
 
@@ -34,9 +33,6 @@ if __name__ == "__main__":
     respostas = aplicar_questionario()
     dimensoes = mapear_dimensoes(respostas)
     exibir_resultado(dimensoes)
-
-    # Etapa 1.1 - Escolha do provedor de IA (Gemini ou GLM-5.3 gratuito)
-    ordem_provedores = perguntar_ordem_provedores()
 
     # Etapa 2 - Leitura do PDF e extração do conteúdo para MD (via Python)
     print("\n" + "="*60)
@@ -69,7 +65,6 @@ if __name__ == "__main__":
             dimensoes=dimensoes,
             assunto=assunto_escolhido,
             texto=texto_assunto,
-            ordem_provedores=ordem_provedores,
         )
     except ErroAutenticacaoAPI as e:
         print("\n" + "="*60)
@@ -77,6 +72,19 @@ if __name__ == "__main__":
         print("="*60)
         print(f"\nO material não pôde ser adaptado devido ao seguinte erro:\n\n  {e}\n")
         raise SystemExit(1)
+
+    # Se a cota/créditos se esgotaram em todos os provedores configurados durante
+    # a adaptação, o(s) bloco(s) afetado(s) ficam marcados com este texto no lugar
+    # do conteúdo adaptado — avisa claramente o usuário em vez de só reportar sucesso.
+    adaptacao_incompleta = "[ERRO NA ADAPTAÇÃO:" in material_adaptado
+    if adaptacao_incompleta:
+        print("\n" + "="*60)
+        print("   ⚠ ATENÇÃO: A ADAPTAÇÃO FICOU INCOMPLETA")
+        print("="*60)
+        print("\nUm ou mais blocos do material NÃO puderam ser adaptados — provavelmente por "
+              "cota/créditos esgotados na(s) API(s) configurada(s) no .env. O PDF gerado a "
+              "seguir pode conter trechos não adaptados ou mensagens de erro no lugar do "
+              "conteúdo. Revise o PDF e verifique sua cota/créditos antes de usá-lo.\n")
 
     # Etapa 3.1 - Geração Multimodal de Imagens APENAS para aprendizes visuais
     if dimensoes.get("entrada") == "Visual":
@@ -99,7 +107,10 @@ if __name__ == "__main__":
     )
 
     print("\n" + "="*60)
-    print("   MATERIAL PERSONALIZADO GERADO COM SUCESSO!")
+    if adaptacao_incompleta:
+        print("   PDF GERADO, MAS COM ADAPTAÇÃO INCOMPLETA (ver aviso acima)")
+    else:
+        print("   MATERIAL PERSONALIZADO GERADO COM SUCESSO!")
     print("="*60)
     print(f"\n  Arquivo salvo em: {caminho_pdf}\n")
     print("="*60)

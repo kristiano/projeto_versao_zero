@@ -4,8 +4,7 @@
 
 import time
 import re
-from modulos.llm.gemini_config import QuotaExceededError, ErroAutenticacaoAPI
-from modulos.llm.provedor_llm import criar_modelo_com_fallback
+from modulos.llm.gemini_config import criar_modelo, QuotaExceededError, ErroAutenticacaoAPI
 
 
 # Padrões que indicam vazamento de raciocínio interno bruto do modelo
@@ -38,7 +37,7 @@ def detectar_vazamento_raciocinio(texto: str) -> list:
     return achados
 
 
-def adaptar_material(dimensoes: dict, assunto: str, texto: str, ordem_provedores=None) -> str:
+def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
     """
     Adapta o material didático ao perfil de aprendizagem do aluno.
     Divide o texto em blocos para garantir cobertura total e profundidade.
@@ -47,8 +46,6 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str, ordem_provedores
     dimensoes: dicionário com as 4 dimensões do Felder-Silverman
     assunto  : nome do capítulo/assunto escolhido pelo aluno
     texto    : conteúdo extraído do PDF
-    ordem_provedores: lista com a ordem de preferência dos provedores de IA
-                       (ex.: ["gemini", "glm"]). Se None, usa a ordem padrão.
 
     Retorna:
     material_adaptado: string com o material personalizado
@@ -151,7 +148,7 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str, ordem_provedores
     blocos = [texto[i : i + tamanho_bloco] for i in range(0, len(texto), tamanho_bloco)]
     
     material_total = []
-    model = criar_modelo_com_fallback(system_instruction=rewrite_sys_msg, ordem_provedores=ordem_provedores)
+    model = criar_modelo(system_instruction=rewrite_sys_msg)
 
     for i, bloco in enumerate(blocos):
         inicio_bloco = time.time()
@@ -178,27 +175,39 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str, ordem_provedores
                 if vazamentos:
                     print(f"[!] Bloco {i+1}: detectado possível vazamento de raciocínio interno "
                           f"({len(vazamentos)} ocorrência(s)): {vazamentos[0]!r}")
-                    print(f"    -> Tentando regenerar o bloco {i+1} com reforço de instrução...")
+                    print(f"    -> Corrigindo apenas o(s) trecho(s) afetado(s) (sem regenerar o bloco inteiro)...")
 
-                    reforco = (
-                        "\n\nATENÇÃO: sua resposta anterior continha raciocínio interno exposto "
-                        "(ex.: 'Self-correction', 'Wait,', 'Okay, so', trechos em inglês, ou comentários sobre a "
-                        "própria correção). REESCREVA DO ZERO. Pense internamente, mas devolva APENAS o conteúdo "
-                        "final, já corrigido e polido, 100% em português, sem qualquer menção ao processo de "
-                        "raciocínio ou correção."
-                    )
-                    try:
-                        response_retry = model.generate_content(contexto_bloco + reforco)
-                        if response_retry.candidates and response_retry.candidates[0].content.parts:
-                            texto_retry = response_retry.text
-                            if not detectar_vazamento_raciocinio(texto_retry):
-                                texto_bloco_gerado = texto_retry
-                                print(f"    -> Regeneração do bloco {i+1} removeu o vazamento com sucesso.")
+                    texto_corrigido = texto_bloco_gerado
+                    falha_em_algum_trecho = False
+                    for trecho_suspeito in vazamentos:
+                        prompt_correcao = (
+                            "O trecho abaixo, extraído de um material didático em português, contém "
+                            "raciocínio interno exposto por engano (ex.: 'Wait,', 'Self-correction', dúvida "
+                            "em voz alta, mistura de inglês). Reescreva APENAS este trecho, preservando a "
+                            "informação e o sentido, 100% em português, sem expor processo de correção ou "
+                            "raciocínio. Devolva SOMENTE o trecho corrigido, sem comentários extras.\n\n"
+                            f"TRECHO A CORRIGIR:\n{trecho_suspeito}"
+                        )
+                        try:
+                            resposta_correcao = model.generate_content(prompt_correcao)
+                            if resposta_correcao.candidates and resposta_correcao.candidates[0].content.parts:
+                                substituto = resposta_correcao.text.strip()
+                                if substituto and not detectar_vazamento_raciocinio(substituto):
+                                    texto_corrigido = texto_corrigido.replace(trecho_suspeito, substituto, 1)
+                                else:
+                                    falha_em_algum_trecho = True
                             else:
-                                print(f"    -> Regeneração do bloco {i+1} ainda contém vazamento; "
-                                      f"mantendo a versão original (revise manualmente este trecho).")
-                    except Exception as e:
-                        print(f"    -> Falha ao tentar regenerar o bloco {i+1}: {e}. Mantendo a versão original.")
+                                falha_em_algum_trecho = True
+                        except Exception as e:
+                            print(f"    -> Falha ao corrigir trecho isolado: {e}.")
+                            falha_em_algum_trecho = True
+
+                    if not falha_em_algum_trecho and not detectar_vazamento_raciocinio(texto_corrigido):
+                        texto_bloco_gerado = texto_corrigido
+                        print(f"    -> Trecho(s) corrigido(s) com sucesso, sem regenerar o bloco inteiro.")
+                    else:
+                        print(f"    -> Não foi possível limpar totalmente; mantendo a versão original "
+                              f"(revise manualmente este trecho).")
 
                 material_total.append(texto_bloco_gerado)
                 print(f"[{i+1}/{len(blocos)}] Bloco {i+1} concluído em {(time.time() - inicio_bloco):.1f}s.")
