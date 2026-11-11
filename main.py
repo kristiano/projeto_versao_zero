@@ -1,18 +1,12 @@
-import os
-import sys
-
-# Repassando a biblioteca do Homebrew para solucionar importação do WeasyPrint (libpango) no Mac
-if sys.platform == 'darwin' and "/opt/homebrew/lib" not in os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", ""):
-    os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("DYLD_FALLBACK_LIBRARY_PATH", "")
-    os.execv(sys.executable, ['python'] + sys.argv)
-
 # main.py
+import os
+
 from modulos.aluno.questionario import aplicar_questionario, mapear_dimensoes, exibir_resultado
 from modulos.pdf.leitor_pdf import converter_pdf_para_md
 from modulos.llm.rewrite import adaptar_material, dividir_em_blocos
 from modulos.llm.gemini_config import ErroAutenticacaoAPI
 from modulos.llm.image_generator import processar_imagens
-from modulos.pdf.gerador_pdf import gerar_pdf
+from modulos.pdf.gerador_html import gerar_html
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -141,9 +135,9 @@ if __name__ == "__main__":
         print("   ⚠ ATENÇÃO: A ADAPTAÇÃO FICOU INCOMPLETA")
         print("="*60)
         print("\nUm ou mais blocos do material NÃO puderam ser adaptados — provavelmente por "
-              "cota/créditos esgotados na(s) API(s) configurada(s) no .env. O PDF gerado a "
-              "seguir pode conter trechos não adaptados ou mensagens de erro no lugar do "
-              "conteúdo. Revise o PDF e verifique sua cota/créditos antes de usá-lo.\n")
+              "cota/créditos esgotados na API configurada no .env. A página gerada a seguir "
+              "pode conter trechos não adaptados ou mensagens de erro no lugar do conteúdo. "
+              "Revise o material e verifique sua cota/créditos antes de usá-lo.\n")
 
     # Etapa 3.1 - Geração Multimodal de Imagens APENAS para aprendizes visuais
     if dimensoes.get("entrada") == "Visual":
@@ -155,11 +149,11 @@ if __name__ == "__main__":
     print("\nExecutando limpeza de segurança (LaTeX -> Unicode)...")
     material_adaptado = processar_markdown(material_adaptado)
 
-    # Etapa 4 - Gerar PDF do material final adaptado
+    # Etapa 4 - Gerar a página HTML final (o aluno imprime em PDF pelo navegador)
     print("\n" + "="*60)
-    print("   ETAPA 4/4: GERAÇÃO DO PDF FINAL")
+    print("   ETAPA 4/4: GERAÇÃO DA PÁGINA HTML FINAL")
     print("="*60)
-    caminho_pdf = gerar_pdf(
+    caminho_html = gerar_html(
         material_adaptado=material_adaptado,
         assunto=assunto_escolhido,
         dimensoes=dimensoes,
@@ -167,9 +161,11 @@ if __name__ == "__main__":
 
     print("\n" + "="*60)
     if adaptacao_incompleta:
-        print("   PDF GERADO, MAS COM ADAPTAÇÃO INCOMPLETA (ver aviso acima)")
+        print("   MATERIAL GERADO, MAS COM ADAPTAÇÃO INCOMPLETA (ver aviso acima)")
     else:
         print("   MATERIAL PERSONALIZADO GERADO COM SUCESSO!")
     print("="*60)
-    print(f"\n  Arquivo salvo em: {caminho_pdf}\n")
+    print(f"\n  Arquivo salvo em: {caminho_html}")
+    print("\n  Abra o arquivo no navegador e use Ctrl+P (ou ⌘+P no Mac)")
+    print("  escolhendo 'Salvar como PDF' para gerar sua versão em PDF.\n")
     print("="*60)

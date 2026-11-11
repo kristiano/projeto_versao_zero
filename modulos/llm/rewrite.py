@@ -23,6 +23,21 @@ PADROES_VAZAMENTO_RACIOCINIO = [
     r'(?i)vou corrigir\s+(?:e|para)',
     r'(?i)parece haver um erro',
     r'(?i)texto original\s+(?:implica|estava|está)\s+(?:falha|errad[oa])',
+
+    # Meta-comentário sobre o material de origem. O aluno não deve perceber que
+    # existe um "texto original" por trás, nem ser alertado sobre supostos erros
+    # do professor. Padrões agnósticos de disciplina (não citam nenhum conteúdo
+    # específico de área), detectando a FORMA do comentário, não o assunto.
+    r'(?i)\b(?:[oa]s?\s+|n[oa]s?\s+)?(?:texto|material|tabela|exemplo|enunciado)\s+original\b',
+    r'(?i)\bno\s+original\b',
+    r'(?i)\bé\s+inconsistente\s+com\b',
+    r'(?i)\binconsistência\s+(?:com|n[oa])\b',
+    r'(?i)\bao\s+contrário\s+do\s+que\s+(?:o|a)\s+(?:texto|material|tabela|autor|professor)\b',
+    r'(?i)\b(?:notar|note|observar|observe|perceba)\s+a\s+(?:contradição|inconsistência|divergência)\s+com\b',
+    r'(?i)\bpara\s+(?:o\s+)?(?:propósito|efeito|fins?)\s+d[oe]\s+exercício\b',
+    r'(?i)\bseguimos\s+o\s+valor\s+(?:indicado|apresentado|original)\b',
+    r'(?i)\b(?:parece|existe|há)\s+(?:haver\s+)?(?:um\s+)?(?:erro|equívoco|engano)\s+n[oa]\b',
+    r'(?i)\bdeveria\s+ser\s+(?:[^.\n]{0,30})?(?:em vez de|e não)\b',
 ]
 
 
@@ -179,7 +194,17 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
         "identifique uma inconsistência ou possível erro neles. NÃO calcule, questione, corrija, 'destrave' ou "
         "substitua exemplos do material por sua própria conta — isso descaracteriza o material do professor e "
         "dificulta o rastreio de erros na fonte original. Apenas apresente o conteúdo original com clareza "
-        "didática, sem alterar seu conteúdo factual.\n\n"
+        "didática, sem alterar seu conteúdo factual.\n"
+        "- **PROIBIDO COMENTAR O MATERIAL, NEM EM FORMA DE RESSALVA:** não basta não corrigir — você também "
+        "NÃO pode adicionar notas, ressalvas, observações, alertas ou comentários sugerindo que algo no "
+        "material parece inconsistente, incorreto, estranho, contraditório ou diferente do esperado. "
+        "É PROIBIDO escrever frases como: 'o texto original diz/classifica/indica...', 'a tabela original...', "
+        "'o material original...', 'isso é inconsistente com...', 'note a contradição...', 'ao contrário do "
+        "que o material afirma...', 'para o propósito do exercício, seguimos o valor indicado, mas...'.\n"
+        "- **O ALUNO NÃO SABE QUE EXISTE UM 'TEXTO ORIGINAL':** para ele, o material que você produz é a "
+        "ÚNICA fonte. Nunca se refira ao material de origem como uma terceira entidade, nem mencione que "
+        "houve um processo de adaptação. Escreva como se esta fosse a versão definitiva e única do conteúdo, "
+        "redigida diretamente pelo professor.\n\n"
         "## RESTRIÇÃO DE ESCOPO — NÃO INTRODUZA CONTEÚDO EXTERNO AO MATERIAL\n"
         "- Ao justificar um passo ou citar o nome de uma lei, teorema, regra, princípio, método, autor, "
         "norma ou classificação, use **exclusivamente** o que estiver explicitamente presente no material "
@@ -192,6 +217,15 @@ def adaptar_material(dimensoes: dict, assunto: str, texto: str) -> str:
         "Introduzir conteúdo externo confunde o aluno e sugere uma cobrança que não existe na disciplina.\n\n"
         "## Formato de Saída\n"
         "Markdown estruturado.\n\n"
+        "### USO DE TABELAS\n"
+        "- Tabelas servem para comparar dados **curtos** lado a lado (poucas palavras por célula). "
+        "Elas NÃO servem para abrigar texto corrido.\n"
+        "- **NUNCA** coloque parágrafos longos, análises, explicações ou raciocínios dentro de células "
+        "de tabela. Isso gera linhas altíssimas com colunas vizinhas vazias, ilegíveis na tela e "
+        "quebradas na impressão. Se um item exige explicação longa, mantenha a tabela enxuta e "
+        "desenvolva a explicação em parágrafos logo ABAIXO dela.\n"
+        "- Limite o número de colunas ao que cabe na largura de uma página A4 (idealmente até 5) e "
+        "mantenha os títulos de coluna curtos.\n\n"
         "### REGRA DE OURO — PROIBIÇÃO TOTAL DE LaTeX\n"
         "- **NUNCA** use a sintaxe `$...$` ou `$$...$$` (delimitadores LaTeX), nem comandos como `\\frac`, "
         "`\\neg`, `\\alpha`, `\\rightarrow`. O material será renderizado em PDF simples que NÃO interpreta LaTeX.\n"
